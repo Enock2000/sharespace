@@ -42,14 +42,14 @@ export default function FilesPage() {
 
     const handleCreateFolder = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!user || !newFolderName) return;
+        if (!user || !newFolderName.trim()) return;
 
         try {
             const res = await fetch("/api/folders", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    name: newFolderName,
+                    name: newFolderName.trim(),
                     parentId: currentFolderId,
                     userId: user.uid,
                 }),
@@ -59,9 +59,14 @@ export default function FilesPage() {
                 setNewFolderName("");
                 setIsCreateFolderOpen(false);
                 fetchContents();
+            } else {
+                const error = await res.json();
+                console.error("Folder creation failed:", error);
+                alert(error.error || "Failed to create folder");
             }
         } catch (error) {
             console.error("Failed to create folder:", error);
+            alert("An error occurred while creating the folder");
         }
     };
 
@@ -163,31 +168,32 @@ export default function FilesPage() {
 
             {/* Create Folder Modal */}
             {isCreateFolderOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-xl w-full max-w-sm">
-                        <h3 className="text-lg font-bold mb-4">Create New Folder</h3>
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+                    <div className="bg-white dark:bg-slate-800 p-6 rounded-xl w-full max-w-sm shadow-2xl border border-slate-200 dark:border-slate-700 animate-in fade-in zoom-in duration-200">
+                        <h3 className="text-lg font-bold mb-4 text-slate-900 dark:text-white">Create New Folder</h3>
                         <form onSubmit={handleCreateFolder}>
                             <input
                                 type="text"
                                 value={newFolderName}
                                 onChange={(e) => setNewFolderName(e.target.value)}
                                 placeholder="Folder Name"
-                                className="w-full p-2 border rounded mb-4 dark:bg-slate-900 dark:border-slate-700"
+                                className="w-full p-3 border rounded-lg mb-4 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                                 autoFocus
                             />
-                            <div className="flex justify-end gap-2">
+                            <div className="flex justify-end gap-3">
                                 <button
                                     type="button"
                                     onClick={() => setIsCreateFolderOpen(false)}
-                                    className="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded"
+                                    className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors font-medium"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                    disabled={!newFolderName.trim()}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    Create
+                                    Create Folder
                                 </button>
                             </div>
                         </form>
