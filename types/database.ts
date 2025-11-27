@@ -1,3 +1,5 @@
+export type UserRole = "owner" | "admin" | "member" | "viewer";
+
 export interface Tenant {
     id: string;
     name: string;
@@ -11,7 +13,7 @@ export interface User {
     first_name: string;
     last_name: string;
     gender?: "male" | "female" | "other" | "prefer_not_to_say";
-    role: "owner" | "admin" | "member" | "viewer";
+    role: UserRole;
     tenant_id: string;
     created_at: number;
     updated_at: number;
