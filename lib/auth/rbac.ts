@@ -4,7 +4,7 @@ const ROLE_HIERARCHY: Record<UserRole, number> = {
     owner: 4,
     admin: 3,
     member: 2,
-    guest: 1,
+    viewer: 1,
 };
 
 export const hasRole = (user: User, requiredRole: UserRole): boolean => {
@@ -15,7 +15,7 @@ export const canPerformAction = (
     user: User,
     resourceOwnerId: string,
     permissions: Permission[],
-    action: "view" | "edit" | "delete"
+    action: "view" | "edit" | "admin"
 ): boolean => {
     // Owners and Admins have full access to tenant resources
     if (hasRole(user, "admin")) return true;
@@ -25,14 +25,14 @@ export const canPerformAction = (
 
     // Check explicit permissions
     const userPermission = permissions.find(
-        (p) => p.principal_id === user.id && p.principal_type === "user"
+        (p) => p.user_id === user.id
     );
 
     if (!userPermission) return false;
 
     if (action === "view") return true; // Any permission implies view
-    if (action === "edit") return ["edit", "delete"].includes(userPermission.access_level);
-    if (action === "delete") return userPermission.access_level === "delete";
+    if (action === "edit") return ["edit", "admin"].includes(userPermission.permission_level);
+    if (action === "admin") return userPermission.permission_level === "admin";
 
     return false;
 };
