@@ -1,24 +1,21 @@
-export type UserRole = "owner" | "admin" | "member" | "guest";
-export type TenantStatus = "active" | "trial" | "suspended";
-export type FileType = "file" | "folder";
-
 export interface Tenant {
     id: string;
     name: string;
-    plan: "free" | "pro" | "enterprise";
-    status: TenantStatus;
-    storage_used: number;
-    owner_id: string;
     created_at: number;
+    owner_id: string;
 }
 
 export interface User {
     id: string;
     email: string;
-    role: UserRole;
+    first_name: string;
+    last_name: string;
+    gender?: "male" | "female" | "other" | "prefer_not_to_say";
+    role: "owner" | "admin" | "member" | "viewer";
     tenant_id: string;
-    status: "active" | "disabled";
     created_at: number;
+    updated_at: number;
+    is_active: boolean;
 }
 
 export interface Folder {
@@ -26,9 +23,9 @@ export interface Folder {
     name: string;
     parent_id: string | null;
     tenant_id: string;
-    owner_id: string;
+    created_by: string;
     created_at: number;
-    path: string[]; // Array of folder IDs for breadcrumbs
+    updated_at: number;
 }
 
 export interface File {
@@ -36,45 +33,48 @@ export interface File {
     name: string;
     folder_id: string;
     tenant_id: string;
-    owner_id: string;
+    uploaded_by: string;
     size: number;
     mime_type: string;
-    current_version: number;
+    storage_key: string;
     created_at: number;
     updated_at: number;
-    is_deleted: boolean; // Soft delete
+    current_version: string;
+    is_deleted: boolean;
 }
 
 export interface FileVersion {
     id: string;
     file_id: string;
     version_number: number;
-    storage_key: string; // B2 file ID or key
+    storage_key: string;
     size: number;
     uploaded_by: string;
     uploaded_at: number;
+    comment?: string;
 }
 
 export interface Permission {
     id: string;
-    resource_id: string;
     resource_type: "file" | "folder";
-    principal_id: string; // User ID or Group ID (future)
-    principal_type: "user" | "group";
-    access_level: "view" | "edit" | "delete";
-    created_at: number;
+    resource_id: string;
+    user_id?: string;
+    group_id?: string;
+    permission_level: "view" | "edit" | "admin";
+    granted_by: string;
+    granted_at: number;
 }
 
 export interface ShareLink {
     id: string;
-    resource_id: string;
-    resource_type: "file" | "folder";
-    token: string;
-    expires_at: number | null;
-    password_hash: string | null;
+    file_id: string;
     created_by: string;
     created_at: number;
-    access_level: "view" | "edit";
+    expires_at?: number;
+    password_hash?: string;
+    access_count: number;
+    max_access_count?: number;
+    is_active: boolean;
 }
 
 export interface AuditLog {
