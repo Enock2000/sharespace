@@ -1,4 +1,21 @@
-return signInWithEmailAndPassword(getAuth(), email, password);
+import {
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    signOut,
+    sendPasswordResetEmail,
+    onAuthStateChanged,
+    User as FirebaseUser,
+} from "firebase/auth";
+import { getFirebaseAuth } from "../firebase-config";
+
+const getAuth = () => getFirebaseAuth();
+
+export const registerUser = async (email: string, password: string) => {
+    return createUserWithEmailAndPassword(getAuth(), email, password);
+};
+
+export const loginUser = async (email: string, password: string) => {
+    return signInWithEmailAndPassword(getAuth(), email, password);
 };
 
 export const logoutUser = async () => {
