@@ -20,8 +20,27 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Inviter not found" }, { status: 404 });
         }
 
-        console.log(`[MOCK EMAIL] Invitation sent to ${email} from ${inviter.email} for role ${role}`);
-        console.log(`[MOCK EMAIL] Link: http://localhost:3000/register?invite=${uuidv4()}`);
+        // Generate invitation token
+        const inviteToken = uuidv4();
+        const inviteData = {
+            email,
+            role: role || "member",
+            tenant_id: inviter.tenant_id,
+            invited_by: inviterId,
+            created_at: Date.now(),
+            expires_at: Date.now() + (7 * 24 * 60 * 60 * 1000), // 7 days
+        };
+
+        // Store invitation in database
+        await db.set(`invitations/${inviteToken}`, inviteData);
+
+        // TODO: Integrate email service (SendGrid, AWS SES, etc.)
+        // For production, replace this with actual email sending
+        const inviteLink = `${process.env.NEXTAUTH_URL || 'https://yourapp.vercel.app'}/register?invite=${inviteToken}`;
+
+        console.log(`Invitation created for ${email}`);
+        console.log(`Invite link: ${inviteLink}`);
+        console.log(`NOTE: In production, send this link via email service`);
 
         // Log audit event
         await logEvent(
@@ -33,7 +52,12 @@ export async function POST(request: Request) {
             { role }
         );
 
-        return NextResponse.json({ success: true, message: "Invitation sent" });
+        return NextResponse.json({
+            success: true,
+            message: "Invitation created successfully",
+            // Include link in development only
+            ...(process.env.NODE_ENV === 'development' && { inviteLink })
+        });
     } catch (error: any) {
         console.error("Invite error:", error);
         return NextResponse.json(

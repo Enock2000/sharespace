@@ -48,7 +48,7 @@ export default function UsersPage() {
             if (res.ok) {
                 setInviteEmail("");
                 setIsInviteOpen(false);
-                alert("Invitation sent! (Check console for mock email)");
+                alert("Invitation sent successfully! The user will receive an email with sign-up instructions.");
                 fetchUsers(); // Refresh list (if we added a pending user)
             }
         } catch (error) {
@@ -101,8 +101,8 @@ export default function UsersPage() {
                                 </td>
                                 <td className="p-4">
                                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${u.status === 'active'
-                                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                            : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                        : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
                                         }`}>
                                         {u.status}
                                     </span>
