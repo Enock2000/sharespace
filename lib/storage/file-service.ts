@@ -10,37 +10,21 @@ export const createFile = async (
 ): Promise<File> => {
     const fileId = uuidv4();
     const now = Date.now();
-
-    const newFile: File = {
-        id: fileId,
-        name: fileData.name,
-        folder_id: folderId,
-        tenant_id: tenantId,
-        owner_id: ownerId,
-        size: fileData.size,
-        mime_type: fileData.mime_type,
-        current_version: 1,
-        created_at: now,
-        updated_at: now,
-        is_deleted: false,
-    };
-
-    const newVersion: FileVersion = {
-        id: uuidv4(),
+    id: uuidv4(),
         file_id: fileId,
-        version_number: 1,
-        storage_key: fileData.storage_key,
-        size: fileData.size,
-        uploaded_by: ownerId,
-        uploaded_at: now,
+            version_number: 1,
+                storage_key: fileData.storage_key,
+                    size: fileData.size,
+                        uploaded_by: ownerId,
+                            uploaded_at: now,
     };
 
-    await db.set(`files/${fileId}`, newFile);
-    await db.set(`file_versions/${newVersion.id}`, newVersion);
+await db.set(`files/${fileId}`, newFile);
+await db.set(`file_versions/${newVersion.id}`, newVersion);
 
-    // Update folder file count or list (denormalization if needed)
+// Update folder file count or list (denormalization if needed)
 
-    return newFile;
+return newFile;
 };
 
 export const createFolder = async (
