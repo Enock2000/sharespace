@@ -76,23 +76,36 @@ export default function FilesPage() {
     };
 
     const handleDownload = (file: File) => {
-        if (file.storage_key) {
+        console.log("Attempting download for:", file.name, "Key:", file.storage_key);
+        if (!file.storage_key) {
+            alert("File URL not found");
+            return;
+        }
+
+        // Check if it's a valid URL (Filestack)
+        if (file.storage_key.startsWith("http")) {
             window.open(file.storage_key, "_blank");
         } else {
-            alert("File URL not found");
+            // Legacy file (Backblaze) - we can't download these anymore without B2 config
+            // But let's try to construct a URL if possible, or just alert
+            alert("This is a legacy file stored in Backblaze. Please re-upload it to Filestack to view/download.");
         }
     };
 
     const handleDeleteFile = async (fileId: string) => {
         if (!user) return;
+        console.log("Deleting file:", fileId);
         try {
             const res = await fetch(`/api/files/${fileId}?userId=${user.uid}`, {
                 method: "DELETE",
             });
+            console.log("Delete response:", res.status);
             if (res.ok) {
                 fetchContents();
             } else {
-                alert("Failed to delete file");
+                const err = await res.json();
+                console.error("Delete failed:", err);
+                alert(`Failed to delete file: ${err.error || res.statusText}`);
             }
         } catch (error) {
             console.error("Delete error:", error);
@@ -102,14 +115,18 @@ export default function FilesPage() {
 
     const handleDeleteFolder = async (folderId: string) => {
         if (!user) return;
+        console.log("Deleting folder:", folderId);
         try {
             const res = await fetch(`/api/folders/${folderId}?userId=${user.uid}`, {
                 method: "DELETE",
             });
+            console.log("Delete response:", res.status);
             if (res.ok) {
                 fetchContents();
             } else {
-                alert("Failed to delete folder");
+                const err = await res.json();
+                console.error("Delete failed:", err);
+                alert(`Failed to delete folder: ${err.error || res.statusText}`);
             }
         } catch (error) {
             console.error("Delete error:", error);

@@ -10,7 +10,10 @@ export async function DELETE(
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId");
 
+    console.log(`[DELETE FILE] Request for fileId: ${params.id}, userId: ${userId}`);
+
     if (!userId) {
+        console.log("[DELETE FILE] Missing userId");
         return NextResponse.json({ error: "User ID required" }, { status: 400 });
     }
 
