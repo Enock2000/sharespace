@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 
 export const createFile = async (
     tenantId: string,
-    folderId: string,
+    folderId: string | null,
     userId: string,
     fileData: { name: string; size: number; mime_type: string; storage_key: string }
 ): Promise<File> => {
@@ -67,7 +67,52 @@ export const createFolder = async (
 
 export const getFolderContents = async (folderId: string | null, tenantId: string) => {
     console.log(`[getFolderContents] Requesting for tenant: ${tenantId}, folder: ${folderId}`);
-    files,
+
+    // Get all files and folders for this tenant
+    const allFilesData = await db.get(`files`);
+    const allFoldersData = await db.get(`folders`);
+
+    // Convert Firebase data to arrays
+    const allFiles: File[] = allFilesData && typeof allFilesData === 'object'
+        ? Object.values(allFilesData)
+        : [];
+    const allFolders: Folder[] = allFoldersData && typeof allFoldersData === 'object'
+        ? Object.values(allFoldersData)
+        : [];
+
+    console.log(`[getFolderContents] Total folders in DB: ${allFolders.length}`);
+    if (allFolders.length > 0) {
+        console.log(`[getFolderContents] Sample folder tenant: ${allFolders[0].tenant_id}`);
+        console.log(`[getFolderContents] Sample folder parent: ${allFolders[0].parent_id}`);
+    }
+
+    // Filter by tenant and parent folder
+    // NOTE: Firebase Realtime DB drops null values, so parent_id/folder_id might be undefined
+    // We need to treat undefined, null, and "root" all as root-level items
+    const targetParent = folderId || null;
+
+    const files = allFiles.filter(f => {
+        const tenantMatch = f.tenant_id === tenantId;
+        const isDeleted = f.is_deleted;
+        // Treat undefined, null, and "root" as root folder
+        const folderMatch = (f.folder_id === targetParent) ||
+            (!f.folder_id && !targetParent) ||
+            (f.folder_id === "root" && !targetParent);
+        return tenantMatch && !isDeleted && folderMatch;
+    });
+
+    const folders = allFolders.filter(f => {
+        const tenantMatch = f.tenant_id === tenantId;
+        // Treat undefined and null as root folder
+        const parentMatch = (f.parent_id === targetParent) ||
+            (!f.parent_id && !targetParent);
+        return tenantMatch && parentMatch;
+    });
+
+    console.log(`[getFolderContents] Returning ${folders.length} folders and ${files.length} files`);
+
+    return {
+        files,
         folders
-};
+    };
 };
