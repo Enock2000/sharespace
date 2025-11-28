@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export default function Home() {
     return (
@@ -9,8 +10,13 @@ export default function Home() {
                 <div className="container mx-auto px-6 py-24 relative z-10">
                     <nav className="flex justify-between items-center mb-16">
                         <div className="flex items-center gap-2">
-                            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg">
-                                S
+                            <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-lg">
+                                <Image
+                                    src="/logo.jpg"
+                                    alt="Shared Spaces Logo"
+                                    fill
+                                    className="object-cover"
+                                />
                             </div>
                             <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
                                 Shared Spaces

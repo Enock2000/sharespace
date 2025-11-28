@@ -2,6 +2,7 @@
 
 import { AuthProvider, useAuth } from "@/lib/auth/auth-context";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { logoutUser } from "@/lib/auth/firebase-auth";
 import { useRouter } from "next/navigation";
@@ -74,8 +75,11 @@ function Sidebar() {
 
     return (
         <aside className="w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 hidden md:flex flex-col">
-            <div className="p-6">
-                <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600">
+            <div className="p-6 flex items-center gap-3">
+                <div className="relative w-8 h-8 rounded-lg overflow-hidden">
+                    <Image src="/logo.jpg" alt="Logo" fill className="object-cover" />
+                </div>
+                <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600">
                     Shared Spaces
                 </h1>
             </div>
@@ -88,8 +92,8 @@ function Sidebar() {
                             key={link.href}
                             href={link.href}
                             className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
-                                    ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
-                                    : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                                ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
+                                : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
                                 }`}
                         >
                             <span>{link.icon}</span>
