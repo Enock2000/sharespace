@@ -15,8 +15,11 @@ export async function GET(request: Request) {
     try {
         const user = await db.get<User>(`users/${userId}`);
         if (!user) {
+            console.log(`[API] User not found: ${userId}`);
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
+
+        console.log(`[API] Found user: ${user.email}, Tenant: ${user.tenant_id}`);
 
         const contents = await getFolderContents(folderId, user.tenant_id);
 
