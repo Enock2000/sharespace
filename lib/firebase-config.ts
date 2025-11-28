@@ -1,3 +1,21 @@
+import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
+import { getAuth, Auth } from "firebase/auth";
+import { getDatabase, Database } from "firebase/database";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyBycuDWBy135k1lGe_9x7RI9vfRdYYR4nM",
+    authDomain: "studio-1406183744-ed22f.firebaseapp.com",
+    databaseURL: "https://studio-1406183744-ed22f-default-rtdb.firebaseio.com",
+    projectId: "studio-1406183744-ed22f",
+    storageBucket: "studio-1406183744-ed22f.firebasestorage.app",
+    messagingSenderId: "296224798311",
+    appId: "1:296224798311:web:02492fe8ffaf8d7dbcc6c2"
+};
+
+let app: FirebaseApp | undefined;
+let auth: Auth | undefined;
+let database: Database | undefined;
+
 // Lazy initialization - only initialize when actually used
 function initializeFirebase() {
     if (typeof window === 'undefined') {
