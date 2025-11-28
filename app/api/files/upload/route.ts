@@ -8,9 +8,9 @@ import { v4 as uuidv4 } from "uuid";
 
 export async function POST(request: Request) {
     try {
-        const { name, size, mime_type, folderId, userId } = await request.json();
+        const { name, size, mime_type, folderId, userId, filestackUrl, filestackHandle } = await request.json();
 
-        if (!name || !size || !userId) {
+        if (!name || !size || !userId || !filestackUrl) {
             return NextResponse.json(
                 { error: "Missing required fields" },
                 { status: 400 }
@@ -23,22 +23,18 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
-        // Generate storage key (unique filename for B2)
-        const storageKey = `${user.tenant_id}/${uuidv4()}`;
-
-        // Get B2 upload URL
-        const b2Upload = await getUploadUrl();
-
         // Create DB record
+        // We store the Filestack URL as the storage_key or add a new field
+        // For backward compatibility, we'll use storage_key for the URL if it's a string
         const file = await createFile(
             user.tenant_id,
-            folderId || "root", // Handle root folder
+            folderId || "root",
             userId,
             {
                 name,
                 size,
                 mime_type,
-                storage_key: storageKey,
+                storage_key: filestackUrl, // Using URL as storage key for now
             }
         );
 
@@ -49,14 +45,12 @@ export async function POST(request: Request) {
             "upload_file",
             "file",
             file.id,
-            { name, size, mime_type }
+            { name, size, mime_type, provider: "filestack" }
         );
 
         return NextResponse.json({
-            uploadUrl: b2Upload.uploadUrl,
-            authorizationToken: b2Upload.authorizationToken,
+            success: true,
             fileId: file.id,
-            storageKey,
         });
     } catch (error: any) {
         console.error("=============== UPLOAD ERROR ===============");
