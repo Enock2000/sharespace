@@ -3,9 +3,11 @@
 import { useAuth } from "@/lib/auth/auth-context";
 import { useEffect, useState } from "react";
 import { Folder } from "@/types/database";
+import { useRouter } from "next/navigation";
 
 export default function FoldersPage() {
     const { user } = useAuth();
+    const router = useRouter();
     const [folders, setFolders] = useState<Folder[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -147,6 +149,31 @@ export default function FoldersPage() {
                     <div className="text-6xl mb-4">📁</div>
                     <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
                         No folders yet
+                    </h3>
+                    <p className="text-slate-600 dark:text-slate-400 mb-6">
+                        Create your first folder to get started
+                    </p>
+                    <button
+                        onClick={() => setShowCreateModal(true)}
+                        className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                    >
+                        Create Folder
+                    </button>
+                </div>
+            )}
+
+            {!loading && folders.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {folders.map((folder) => (
+                        <div
+                            key={folder.id}
+                            onClick={() => router.push(`/dashboard/files?folderId=${folder.id}`)}
+                            className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6 hover:shadow-lg hover:border-blue-400 transition-all cursor-pointer group"
+                        >
+                            <div className="flex items-start justify-between mb-4">
+                                <div className="text-4xl">📁</div>
+                                <button className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-slate-600">
+                                    ⋮
                                 </button>
                             </div>
                             <h3 className="font-semibold text-slate-900 dark:text-white mb-2 truncate">
@@ -156,56 +183,53 @@ export default function FoldersPage() {
                                 Created {formatDate(folder.created_at)}
                             </p>
                         </div>
-    ))
-}
-                </div >
+                    ))}
+                </div>
             )}
 
-{/* Create Folder Modal */ }
-{
-    showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 w-full max-w-md shadow-2xl">
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">
-                    Create New Folder
-                </h2>
-                <input
-                    type="text"
-                    value={newFolderName}
-                    onChange={(e) => setNewFolderName(e.target.value)}
-                    onKeyDown={(e) => {
-                        if (e.key === "Enter" && newFolderName.trim() && !creating) {
-                            handleCreateFolder();
-                        }
-                    }}
-                    placeholder="Enter folder name..."
-                    className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-700 dark:text-white mb-6"
-                    autoFocus
-                />
-                <div className="flex gap-3">
-                    <button
-                        onClick={() => {
-                            setShowCreateModal(false);
-                            setNewFolderName("");
-                            setError("");
-                        }}
-                        className="flex-1 px-6 py-3 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-                        disabled={creating}
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={handleCreateFolder}
-                        disabled={!newFolderName.trim() || creating}
-                        className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed"
-                    >
-                        {creating ? "Creating..." : "Create Folder"}
-                    </button>
+            {/* Create Folder Modal */}
+            {showCreateModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 w-full max-w-md shadow-2xl">
+                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">
+                            Create New Folder
+                        </h2>
+                        <input
+                            type="text"
+                            value={newFolderName}
+                            onChange={(e) => setNewFolderName(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" && newFolderName.trim() && !creating) {
+                                    handleCreateFolder();
+                                }
+                            }}
+                            placeholder="Enter folder name..."
+                            className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-700 dark:text-white mb-6"
+                            autoFocus
+                        />
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowCreateModal(false);
+                                    setNewFolderName("");
+                                    setError("");
+                                }}
+                                className="flex-1 px-6 py-3 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                                disabled={creating}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleCreateFolder}
+                                disabled={!newFolderName.trim() || creating}
+                                className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed"
+                            >
+                                {creating ? "Creating..." : "Create Folder"}
+                            </button>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
-    )
-}
-        </div >
     );
 }
