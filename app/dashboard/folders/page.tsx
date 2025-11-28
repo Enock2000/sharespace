@@ -6,6 +6,7 @@ import { Folder } from "@/types/database";
 import { useRouter } from "next/navigation";
 import { client, FILESTACK_OPTIONS } from "@/lib/filestack-config";
 import { PickerFileMetadata } from "filestack-js";
+import { Icons } from "@/components/ui/icons";
 
 export default function FoldersPage() {
     const { user } = useAuth();
@@ -178,9 +179,10 @@ export default function FoldersPage() {
                 </div>
                 <button
                     onClick={() => setShowCreateModal(true)}
-                    className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:shadow-lg transition-all"
+                    className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:shadow-lg transition-all flex items-center gap-2"
                 >
-                    + New Folder
+                    <Icons.Plus className="w-5 h-5" />
+                    New Folder
                 </button>
             </div>
 
@@ -199,15 +201,16 @@ export default function FoldersPage() {
 
             {/* Folder Count */}
             {!loading && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg px-4 py-3">
-                    <p className="text-blue-900 dark:text-blue-100 font-medium">📁 Total Folders: {folders.length}</p>
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg px-4 py-3 flex items-center gap-2">
+                    <Icons.Folder className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    <p className="text-blue-900 dark:text-blue-100 font-medium">Total Folders: {folders.length}</p>
                 </div>
             )}
 
             {/* Folders Grid */}
             {!loading && folders.length === 0 && (
                 <div className="text-center py-16 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                    <div className="text-6xl mb-4">📁</div>
+                    <Icons.Folder className="w-16 h-16 mx-auto mb-4 text-slate-300" />
                     <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">No folders yet</h3>
                     <button
                         onClick={() => setShowCreateModal(true)}
@@ -227,10 +230,10 @@ export default function FoldersPage() {
                         >
                             <div className="flex items-start justify-between mb-4">
                                 <div
-                                    className="text-4xl cursor-pointer"
+                                    className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600 dark:text-blue-400 cursor-pointer"
                                     onClick={() => router.push(`/dashboard/files?folderId=${folder.id}`)}
                                 >
-                                    📁
+                                    <Icons.Folder className="w-8 h-8" />
                                 </div>
                                 <div className="relative">
                                     <button
@@ -240,7 +243,7 @@ export default function FoldersPage() {
                                         }}
                                         className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 transition-colors"
                                     >
-                                        <span className="text-xl font-bold">⋮</span>
+                                        <Icons.MoreVertical className="w-5 h-5" />
                                     </button>
 
                                     {/* Context Menu */}
@@ -256,7 +259,7 @@ export default function FoldersPage() {
                                                 }}
                                                 className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 flex items-center gap-2"
                                             >
-                                                <span>☁️</span> Upload Files
+                                                <Icons.Upload className="w-4 h-4" /> Upload Files
                                             </button>
                                             <button
                                                 onClick={() => {
@@ -265,7 +268,7 @@ export default function FoldersPage() {
                                                 }}
                                                 className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 flex items-center gap-2"
                                             >
-                                                <span>👁️</span> View Files
+                                                <Icons.Eye className="w-4 h-4" /> View Files
                                             </button>
                                             <button
                                                 onClick={() => {
@@ -276,7 +279,7 @@ export default function FoldersPage() {
                                                 }}
                                                 className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 flex items-center gap-2"
                                             >
-                                                <span>✏️</span> Edit Name
+                                                <Icons.Edit className="w-4 h-4" /> Edit Name
                                             </button>
                                             <div className="border-t border-slate-100 dark:border-slate-700 my-1"></div>
                                             <button
@@ -286,7 +289,7 @@ export default function FoldersPage() {
                                                 }}
                                                 className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
                                             >
-                                                <span>🗑️</span> Delete
+                                                <Icons.Trash className="w-4 h-4" /> Delete
                                             </button>
                                         </div>
                                     )}
