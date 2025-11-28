@@ -59,9 +59,13 @@ export async function POST(request: Request) {
             storageKey,
         });
     } catch (error: any) {
-        console.error("Upload error:", error);
+        console.error("=============== UPLOAD ERROR ===============");
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+        console.error("Error details:", error);
+        console.error("===========================================");
         return NextResponse.json(
-            { error: "Internal server error" },
+            { error: error.message || "Internal server error" },
             { status: 500 }
         );
     }
