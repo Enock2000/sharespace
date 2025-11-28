@@ -26,7 +26,7 @@ export async function POST(request: Request) {
         // For backward compatibility, we'll use storage_key for the URL if it's a string
         const file = await createFile(
             user.tenant_id,
-            folderId || "root",
+            folderId || null, // Use null instead of "root" to match query logic
             userId,
             {
                 name,
