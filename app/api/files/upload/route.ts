@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
-import { getUploadUrl } from "@/lib/storage/backblaze";
 import { createFile } from "@/lib/storage/file-service";
 import { db } from "@/lib/database/schema";
 import { logEvent } from "@/lib/utils/audit-logger";
 import { User } from "@/types/database";
-import { v4 as uuidv4 } from "uuid";
 
 export async function POST(request: Request) {
     try {
