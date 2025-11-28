@@ -33,7 +33,7 @@ export interface Folder {
 export interface File {
     id: string;
     name: string;
-    folder_id: string;
+    folder_id: string | null;
     tenant_id: string;
     uploaded_by: string;
     size: number;
