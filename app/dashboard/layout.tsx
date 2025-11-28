@@ -60,7 +60,8 @@ function Sidebar() {
 
     const links = [
         { href: "/dashboard", label: "Overview", icon: "📊" },
-        { href: "/dashboard/files", label: "Files", icon: "📁" },
+        { href: "/dashboard/folders", label: "Folders", icon: "📁" },
+        { href: "/dashboard/files", label: "Files", icon: "📄" },
         { href: "/dashboard/users", label: "Team", icon: "👥" },
         { href: "/dashboard/audit", label: "Audit Logs", icon: "📜" },
     ];
