@@ -70,11 +70,46 @@ export default function FilesPage() {
         }
     };
 
-    const handleDownload = async (file: File) => {
-        // In a real app, we'd get a signed URL from API
-        // For MVP, we'll just alert or log
-        console.log("Download", file.name);
-        // TODO: Implement download API call
+    const handleDownload = (file: File) => {
+        if (file.storage_key) {
+            window.open(file.storage_key, "_blank");
+        } else {
+            alert("File URL not found");
+        }
+    };
+
+    const handleDeleteFile = async (fileId: string) => {
+        if (!user) return;
+        try {
+            const res = await fetch(`/api/files/${fileId}?userId=${user.uid}`, {
+                method: "DELETE",
+            });
+            if (res.ok) {
+                fetchContents();
+            } else {
+                alert("Failed to delete file");
+            }
+        } catch (error) {
+            console.error("Delete error:", error);
+            alert("Failed to delete file");
+        }
+    };
+
+    const handleDeleteFolder = async (folderId: string) => {
+        if (!user) return;
+        try {
+            const res = await fetch(`/api/folders/${folderId}?userId=${user.uid}`, {
+                method: "DELETE",
+            });
+            if (res.ok) {
+                fetchContents();
+            } else {
+                alert("Failed to delete folder");
+            }
+        } catch (error) {
+            console.error("Delete error:", error);
+            alert("Failed to delete folder");
+        }
     };
 
     return (
@@ -122,11 +157,27 @@ export default function FilesPage() {
                         <div
                             key={folder.id}
                             onClick={() => setCurrentFolderId(folder.id)}
-                            className="p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-500 cursor-pointer transition-all group"
+                            className="p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-500 cursor-pointer transition-all group relative"
                         >
                             <div className="flex items-center gap-3">
                                 <span className="text-2xl">📁</span>
                                 <span className="font-medium truncate">{folder.name}</span>
+                            </div>
+
+                            {/* Folder Actions */}
+                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (confirm(`Delete folder "${folder.name}"?`)) {
+                                            handleDeleteFolder(folder.id);
+                                        }
+                                    }}
+                                    className="p-1.5 hover:bg-red-50 text-red-600 rounded-lg bg-white shadow-sm"
+                                    title="Delete Folder"
+                                >
+                                    🗑️
+                                </button>
                             </div>
                         </div>
                     ))}
@@ -146,13 +197,26 @@ export default function FilesPage() {
                                 <span>{new Date(file.created_at).toLocaleDateString()}</span>
                             </div>
 
-                            {/* Hover Actions */}
-                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {/* File Actions */}
+                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                                 <button
                                     onClick={(e) => { e.stopPropagation(); handleDownload(file); }}
-                                    className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded"
+                                    className="p-1.5 hover:bg-blue-50 text-blue-600 rounded-lg bg-white shadow-sm"
+                                    title="Download"
                                 >
                                     ⬇️
+                                </button>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (confirm(`Delete file "${file.name}"?`)) {
+                                            handleDeleteFile(file.id);
+                                        }
+                                    }}
+                                    className="p-1.5 hover:bg-red-50 text-red-600 rounded-lg bg-white shadow-sm"
+                                    title="Delete"
+                                >
+                                    🗑️
                                 </button>
                             </div>
                         </div>
