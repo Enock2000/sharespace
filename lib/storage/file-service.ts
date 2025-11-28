@@ -67,42 +67,7 @@ export const createFolder = async (
 
 export const getFolderContents = async (folderId: string | null, tenantId: string) => {
     console.log(`[getFolderContents] Requesting for tenant: ${tenantId}, folder: ${folderId}`);
-
-    // Get all files and folders for this tenant
-    const allFilesData = await db.get(`files`);
-    const allFoldersData = await db.get(`folders`);
-
-    // Convert Firebase data to arrays
-    const allFiles: File[] = allFilesData && typeof allFilesData === 'object'
-        ? Object.values(allFilesData)
-        : [];
-    const allFolders: Folder[] = allFoldersData && typeof allFoldersData === 'object'
-        ? Object.values(allFoldersData)
-        : [];
-
-    console.log(`[getFolderContents] Total folders in DB: ${allFolders.length}`);
-    if (allFolders.length > 0) {
-        console.log(`[getFolderContents] Sample folder tenant: ${allFolders[0].tenant_id}`);
-        console.log(`[getFolderContents] Sample folder parent: ${allFolders[0].parent_id}`);
-    }
-
-    // Filter by tenant and parent folder
-    const files = allFiles.filter(f =>
-        f.tenant_id === tenantId &&
-        !f.is_deleted &&
-        f.folder_id === (folderId || null)
-    );
-
-    const folders = allFolders.filter(f => {
-        const tenantMatch = f.tenant_id === tenantId;
-        const parentMatch = f.parent_id === (folderId || null);
-        return tenantMatch && parentMatch;
-    });
-
-    console.log(`[getFolderContents] Returning ${folders.length} folders and ${files.length} files`);
-
-    return {
-        files,
+    files,
         folders
-    };
+};
 };
