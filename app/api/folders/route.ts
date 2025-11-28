@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     } catch (error: any) {
         console.error("Create folder error:", error);
         return NextResponse.json(
-            { error: "Internal server error" },
+            { error: error.message || "Internal server error" },
             { status: 500 }
         );
     }
