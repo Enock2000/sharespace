@@ -4,12 +4,17 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth/auth-context";
 import FileUploader from "@/components/ui/file-uploader";
 import { File, Folder } from "@/types/database";
+import { useSearchParams, useRouter } from "next/navigation";
 
 export default function FilesPage() {
     const { user } = useAuth();
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const initialFolderId = searchParams.get("folderId");
+
     const [files, setFiles] = useState<File[]>([]);
     const [folders, setFolders] = useState<Folder[]>([]);
-    const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+    const [currentFolderId, setCurrentFolderId] = useState<string | null>(initialFolderId);
     const [loading, setLoading] = useState(true);
     const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
     const [newFolderName, setNewFolderName] = useState("");
@@ -135,7 +140,10 @@ export default function FilesPage() {
             {/* Breadcrumbs (Simplified) */}
             <div className="flex items-center gap-2 text-sm text-slate-500">
                 <button
-                    onClick={() => setCurrentFolderId(null)}
+                    onClick={() => {
+                        setCurrentFolderId(null);
+                        router.push("/dashboard/files");
+                    }}
                     className="hover:text-blue-500"
                 >
                     Home
@@ -156,7 +164,10 @@ export default function FilesPage() {
                     {folders.map((folder) => (
                         <div
                             key={folder.id}
-                            onClick={() => setCurrentFolderId(folder.id)}
+                            onClick={() => {
+                                setCurrentFolderId(folder.id);
+                                router.push(`/dashboard/files?folderId=${folder.id}`);
+                            }}
                             className="p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-500 cursor-pointer transition-all group relative"
                         >
                             <div className="flex items-center gap-3">
