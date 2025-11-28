@@ -1,6 +1,6 @@
 import * as filestack from 'filestack-js';
 
-const API_KEY = process.env.NEXT_PUBLIC_FILESTACK_API_KEY || "YOUR_FILESTACK_API_KEY";
+const API_KEY = "A7wMT9KlRu6grbF2ZK9Cgz";
 
 export const client = filestack.init(API_KEY);
 
