@@ -16,13 +16,8 @@ let app: FirebaseApp | undefined;
 let auth: Auth | undefined;
 let database: Database | undefined;
 
-// Lazy initialization - only initialize when actually used
+// Initialize Firebase - now works on both client and server
 function initializeFirebase() {
-    if (typeof window === 'undefined') {
-        // Don't initialize on server side during build
-        return;
-    }
-
     if (!app) {
         app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
         auth = getAuth(app);
