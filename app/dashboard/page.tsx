@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { useState, useEffect } from "react";
 import { db } from "@/lib/database/schema";
 import { User, File as FileType, AuditLog } from "@/types/database";
+import { Icons } from "@/components/ui/icons";
 
 interface DashboardStats {
     totalFiles: number;
@@ -90,11 +91,11 @@ export default function DashboardPage() {
     };
 
     const getActionIcon = (action: string) => {
-        if (action.includes('upload')) return '📤';
-        if (action.includes('create')) return '📁';
-        if (action.includes('invite')) return '👥';
-        if (action.includes('delete')) return '🗑️';
-        return '📄';
+        if (action.includes('upload')) return <Icons.Upload className="w-5 h-5" />;
+        if (action.includes('create')) return <Icons.Folder className="w-5 h-5" />;
+        if (action.includes('invite')) return <Icons.Users className="w-5 h-5" />;
+        if (action.includes('delete')) return <Icons.Trash className="w-5 h-5" />;
+        return <Icons.File className="w-5 h-5" />;
     };
 
     if (loading) {
@@ -109,8 +110,13 @@ export default function DashboardPage() {
         <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-                    <h3 className="text-slate-500 dark:text-slate-400 text-sm font-medium">Total Files</h3>
-                    <p className="text-3xl font-bold text-slate-900 dark:text-white mt-2">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-slate-500 dark:text-slate-400 text-sm font-medium">Total Files</h3>
+                        <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-600 dark:text-blue-400">
+                            <Icons.File className="w-5 h-5" />
+                        </div>
+                    </div>
+                    <p className="text-3xl font-bold text-slate-900 dark:text-white">
                         {stats.totalFiles.toLocaleString()}
                     </p>
                     <span className="text-blue-500 text-sm font-medium mt-2 inline-block">
@@ -119,8 +125,13 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-                    <h3 className="text-slate-500 dark:text-slate-400 text-sm font-medium">Team Members</h3>
-                    <p className="text-3xl font-bold text-slate-900 dark:text-white mt-2">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-slate-500 dark:text-slate-400 text-sm font-medium">Team Members</h3>
+                        <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg text-green-600 dark:text-green-400">
+                            <Icons.Users className="w-5 h-5" />
+                        </div>
+                    </div>
+                    <p className="text-3xl font-bold text-slate-900 dark:text-white">
                         {stats.activeUsers}
                     </p>
                     <span className="text-green-500 text-sm font-medium mt-2 inline-block">
@@ -129,8 +140,13 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-                    <h3 className="text-slate-500 dark:text-slate-400 text-sm font-medium">Storage Used</h3>
-                    <p className="text-3xl font-bold text-slate-900 dark:text-white mt-2">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-slate-500 dark:text-slate-400 text-sm font-medium">Storage Used</h3>
+                        <div className="p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-purple-600 dark:text-purple-400">
+                            <Icons.BarChart className="w-5 h-5" />
+                        </div>
+                    </div>
+                    <p className="text-3xl font-bold text-slate-900 dark:text-white">
                         {formatBytes(stats.storageUsed)}
                     </p>
                     <span className="text-slate-500 text-sm font-medium mt-2 inline-block">

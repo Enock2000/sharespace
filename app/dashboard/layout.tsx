@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { db } from "@/lib/database/schema";
 import { User, File as FileType } from "@/types/database";
+import { Icons } from "@/components/ui/icons";
 
 export default function DashboardLayout({
     children,
@@ -33,7 +34,8 @@ export default function DashboardLayout({
 function Sidebar() {
     const pathname = usePathname();
     const { user } = useAuth();
-    const [storageStats, setStorageStats] = useState({ used: 0, total: 10737418240 }); // 10GB default
+    // 250GB = 250 * 1024 * 1024 * 1024
+    const [storageStats, setStorageStats] = useState({ used: 0, total: 268435456000 });
 
     useEffect(() => {
         const fetchStorage = async () => {
@@ -49,7 +51,7 @@ function Sidebar() {
                     : [];
 
                 const totalUsed = tenantFiles.reduce((sum, file) => sum + (file.size || 0), 0);
-                setStorageStats({ used: totalUsed, total: 10737418240 }); // 10GB
+                setStorageStats({ used: totalUsed, total: 268435456000 });
             } catch (error) {
                 console.error("Failed to fetch storage stats:", error);
             }
@@ -59,11 +61,11 @@ function Sidebar() {
     }, [user]);
 
     const links = [
-        { href: "/dashboard", label: "Overview", icon: "📊" },
-        { href: "/dashboard/folders", label: "Folders", icon: "📁" },
-        { href: "/dashboard/files", label: "Files", icon: "📄" },
-        { href: "/dashboard/users", label: "Team", icon: "👥" },
-        { href: "/dashboard/audit", label: "Audit Logs", icon: "📜" },
+        { href: "/dashboard", label: "Overview", icon: Icons.BarChart },
+        { href: "/dashboard/folders", label: "Folders", icon: Icons.Folder },
+        { href: "/dashboard/files", label: "Files", icon: Icons.File },
+        { href: "/dashboard/users", label: "Team", icon: Icons.Users },
+        { href: "/dashboard/audit", label: "Audit Logs", icon: Icons.Scroll },
     ];
 
     const formatBytes = (bytes: number) => {
@@ -75,12 +77,12 @@ function Sidebar() {
     const percentage = Math.min(100, (storageStats.used / storageStats.total) * 100);
 
     return (
-        <aside className="w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 hidden md:flex flex-col">
+        <aside className="w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 hidden md:flex flex-col shadow-lg z-10">
             <div className="p-6 flex items-center gap-3">
-                <div className="relative w-8 h-8 rounded-lg overflow-hidden">
+                <div className="relative w-8 h-8 rounded-lg overflow-hidden shadow-sm">
                     <Image src="/logo.jpg" alt="Logo" fill className="object-cover" />
                 </div>
-                <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600">
+                <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
                     Shared Spaces
                 </h1>
             </div>
@@ -88,16 +90,17 @@ function Sidebar() {
             <nav className="flex-1 px-4 space-y-2">
                 {links.map((link) => {
                     const isActive = pathname === link.href;
+                    const Icon = link.icon;
                     return (
                         <Link
                             key={link.href}
                             href={link.href}
-                            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
-                                ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
-                                : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${isActive
+                                ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 shadow-sm"
+                                : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200"
                                 }`}
                         >
-                            <span>{link.icon}</span>
+                            <Icon className="w-5 h-5" />
                             <span className="font-medium">{link.label}</span>
                         </Link>
                     );
@@ -105,13 +108,16 @@ function Sidebar() {
             </nav>
 
             <div className="p-4 border-t border-slate-200 dark:border-slate-700">
-                <div className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg p-4 text-white">
-                    <p className="text-sm font-medium opacity-90">Storage Used</p>
-                    <div className="mt-2 h-2 bg-white/20 rounded-full overflow-hidden">
-                        <div className="h-full bg-white transition-all duration-500" style={{ width: `${percentage}%` }}></div>
+                <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl p-4 text-white shadow-lg">
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-sm font-medium opacity-90">Storage Used</p>
+                        <Icons.BarChart className="w-4 h-4 opacity-50" />
                     </div>
-                    <p className="mt-2 text-xs opacity-75">
-                        {formatBytes(storageStats.used)} of {formatBytes(storageStats.total)}
+                    <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                        <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${percentage}%` }}></div>
+                    </div>
+                    <p className="mt-2 text-xs opacity-75 font-mono">
+                        {formatBytes(storageStats.used)} / {formatBytes(storageStats.total)}
                     </p>
                 </div>
             </div>
@@ -139,24 +145,40 @@ function Header() {
     };
 
     return (
-        <header className="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-6">
-            <h2 className="text-lg font-semibold text-slate-800 dark:text-white">
-                Dashboard
-            </h2>
+        <header className="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-6 shadow-sm z-10">
+            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/50 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700">
+                <Icons.Shield className="w-4 h-4 text-green-500" />
+                <span className="text-xs font-medium">Secure Workspace</span>
+            </div>
 
             <div className="flex items-center gap-4">
-                {currentUser && (
-                    <div className="text-sm text-slate-600 dark:text-slate-400">
-                        {currentUser.email}
-                    </div>
-                )}
-                <div className="h-8 w-8 rounded-full bg-gradient-to-r from-blue-400 to-purple-500"></div>
-                <button
-                    onClick={handleLogout}
-                    className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-red-500 transition-colors"
-                >
-                    Sign Out
+                <button className="p-2 text-slate-400 hover:text-slate-600 transition-colors relative">
+                    <Icons.Bell className="w-5 h-5" />
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-800"></span>
                 </button>
+
+                <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-700 mx-2"></div>
+
+                <div className="flex items-center gap-3">
+                    <div className="text-right hidden sm:block">
+                        <div className="text-sm font-medium text-slate-900 dark:text-white">
+                            {currentUser ? `${currentUser.first_name} ${currentUser.last_name}` : 'Loading...'}
+                        </div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400">
+                            {currentUser?.role || 'Member'}
+                        </div>
+                    </div>
+                    <div className="h-9 w-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-medium shadow-md">
+                        {currentUser?.first_name?.[0] || 'U'}
+                    </div>
+                    <button
+                        onClick={handleLogout}
+                        className="ml-2 text-slate-400 hover:text-red-500 transition-colors"
+                        title="Sign Out"
+                    >
+                        <Icons.Download className="w-5 h-5 rotate-90" />
+                    </button>
+                </div>
             </div>
         </header>
     );
