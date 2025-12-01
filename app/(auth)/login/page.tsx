@@ -32,14 +32,18 @@ export default function LoginPage() {
                 if (snapshot.exists()) {
                     const userData = snapshot.val();
                     const userRole = userData.role;
+                    console.log("User Role Fetched:", userRole); // DEBUG LOG
 
                     // Redirect based on role
                     if (userRole === "platform_admin" || userRole === "super_admin") {
+                        console.log("Redirecting to /admin"); // DEBUG LOG
                         router.push("/admin");
                     } else {
+                        console.log("Redirecting to /dashboard"); // DEBUG LOG
                         router.push("/dashboard");
                     }
                 } else {
+                    console.log("User data not found, defaulting to /dashboard"); // DEBUG LOG
                     // Default to dashboard if no user data found
                     router.push("/dashboard");
                 }
