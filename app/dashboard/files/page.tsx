@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth/auth-context";
-import FileUploader from "@/components/ui/file-uploader";
+import B2FileUploader from "@/components/ui/b2-file-uploader";
 import { File, Folder } from "@/types/database";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Icons } from "@/components/ui/icons";
@@ -191,7 +191,7 @@ export default function FilesPage() {
                         <Icons.Plus className="w-4 h-4" />
                         New Folder
                     </button>
-                    <FileUploader
+                    <B2FileUploader
                         currentFolderId={currentFolderId}
                         onUploadComplete={fetchContents}
                     />
