@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setLoading(false);
 
             // Basic client-side protection
-            const isAuthPage = pathname?.startsWith("/login") || pathname?.startsWith("/register");
+            const isAuthPage = pathname?.startsWith("/login") || pathname?.startsWith("/register") || pathname?.startsWith("/admin/login");
             const isPublicPage = pathname === "/";
 
             if (!user && !isAuthPage && !isPublicPage) {

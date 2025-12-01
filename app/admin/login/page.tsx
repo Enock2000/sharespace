@@ -19,20 +19,41 @@ export default function AdminLoginPage() {
 
     // Check if user is already logged in and is an admin
     useEffect(() => {
+        let mounted = true;
+
         async function checkExistingAuth() {
-            if (user) {
-                const isAdmin = await isPlatformAdmin(user.uid);
-                if (isAdmin) {
-                    router.push("/admin");
+            try {
+                if (user) {
+                    console.log("Checking admin status for user:", user.uid);
+                    // Add a timeout to prevent infinite loading
+                    const timeoutPromise = new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error("Auth check timed out")), 5000)
+                    );
+
+                    const checkPromise = isPlatformAdmin(user.uid);
+                    const isAdmin = await Promise.race([checkPromise, timeoutPromise]);
+
+                    if (mounted) {
+                        if (isAdmin) {
+                            console.log("User is admin, redirecting...");
+                            router.push("/admin");
+                        } else {
+                            console.log("User is not admin");
+                            setCheckingAuth(false);
+                        }
+                    }
                 } else {
-                    setCheckingAuth(false);
+                    if (mounted) setCheckingAuth(false);
                 }
-            } else {
-                setCheckingAuth(false);
+            } catch (error) {
+                console.error("Auth check failed:", error);
+                if (mounted) setCheckingAuth(false);
             }
         }
 
         checkExistingAuth();
+
+        return () => { mounted = false; };
     }, [user, router]);
 
     const handleSubmit = async (e: React.FormEvent) => {
