@@ -27,6 +27,10 @@ export async function POST(request: Request) {
             name: companyName,
             created_at: Date.now(),
             owner_id: userId,
+            is_suspended: false,
+            storage_quota: 250 * 1024 * 1024 * 1024, // 250GB default
+            user_limit: 50, // Default limit
+            plan: "free", // Default to free plan
         };
 
         await db.set(`tenants/${tenantId}`, tenant);
