@@ -43,6 +43,7 @@ export interface File {
     size: number;
     mime_type: string;
     storage_key: string;
+    provider?: "filestack" | "backblaze";
     created_at: number;
     updated_at: number;
     current_version: string;
@@ -54,6 +55,7 @@ export interface FileVersion {
     file_id: string;
     version_number: number;
     storage_key: string;
+    provider?: "filestack" | "backblaze";
     size: number;
     uploaded_by: string;
     uploaded_at: number;

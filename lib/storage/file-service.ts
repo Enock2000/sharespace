@@ -6,7 +6,7 @@ export const createFile = async (
     tenantId: string,
     folderId: string | null,
     userId: string,
-    fileData: { name: string; size: number; mime_type: string; storage_key: string }
+    fileData: { name: string; size: number; mime_type: string; storage_key: string; provider?: "filestack" | "backblaze" }
 ): Promise<File> => {
     const fileId = uuidv4();
     const now = Date.now();
@@ -18,6 +18,7 @@ export const createFile = async (
         tenant_id: tenantId,
         uploaded_by: userId,
         storage_key: fileData.storage_key,
+        provider: fileData.provider || "filestack",
         size: fileData.size,
         mime_type: fileData.mime_type,
         current_version: "1",
@@ -31,6 +32,7 @@ export const createFile = async (
         file_id: fileId,
         version_number: 1,
         storage_key: fileData.storage_key,
+        provider: fileData.provider || "filestack",
         size: fileData.size,
         uploaded_by: userId,
         uploaded_at: now,
