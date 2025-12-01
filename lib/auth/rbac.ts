@@ -1,6 +1,8 @@
 import { User, UserRole, Permission } from "@/types/database";
 
 const ROLE_HIERARCHY: Record<UserRole, number> = {
+    super_admin: 6,
+    platform_admin: 5,
     owner: 4,
     admin: 3,
     member: 2,
