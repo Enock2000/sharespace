@@ -1,17 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { loginUser, logoutUser } from "@/lib/auth/firebase-auth";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Icons } from "@/components/ui/icons";
+import { useAuth } from "@/lib/auth/auth-context";
+import { isPlatformAdmin } from "@/lib/auth/admin-middleware";
 
 export default function AdminLoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+    const [checkingAuth, setCheckingAuth] = useState(true);
     const router = useRouter();
+    const { user } = useAuth();
+
+    // Check if user is already logged in and is an admin
+    useEffect(() => {
+        async function checkExistingAuth() {
+            if (user) {
+                const isAdmin = await isPlatformAdmin(user.uid);
+                if (isAdmin) {
+                    router.push("/admin");
+                } else {
+                    setCheckingAuth(false);
+                }
+            } else {
+                setCheckingAuth(false);
+            }
+        }
+
+        checkExistingAuth();
+    }, [user, router]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -54,6 +76,18 @@ export default function AdminLoginPage() {
             setLoading(false);
         }
     };
+
+    // Show loading screen while checking auth
+    if (checkingAuth) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900">
+                <div className="text-center">
+                    <div className="w-16 h-16 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-gray-400">Checking authentication...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 p-4 relative overflow-hidden">
