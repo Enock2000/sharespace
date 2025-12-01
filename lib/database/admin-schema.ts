@@ -1,7 +1,10 @@
-import { db } from "@/lib/database/schema";
+import { getFirebaseDatabase } from "@/lib/firebase-config";
 import { ref, get, set, update, remove, query, orderByChild, equalTo } from "firebase/database";
 import { TenantStats, PlatformStats, AdminAuditLog, TenantQuota, UserActivityLog } from "@/types/admin";
 import { Tenant, User, File, Folder } from "@/types/database";
+
+// Get a reference to the database
+const db = getFirebaseDatabase();
 
 // ===== Platform Admin Management =====
 
