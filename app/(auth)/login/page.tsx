@@ -18,8 +18,33 @@ export default function LoginPage() {
         setLoading(true);
 
         try {
-            await loginUser(email, password);
-            router.push("/dashboard");
+            const result = await loginUser(email, password);
+
+            if (result.success && result.user) {
+                // Fetch user role from database
+                const { db } = await import("@/lib/database/schema");
+                const { ref, get } = await import("firebase/database");
+
+                const userRef = ref(db, `users/${result.user.uid}`);
+                const snapshot = await get(userRef);
+
+                if (snapshot.exists()) {
+                    const userData = snapshot.val();
+                    const userRole = userData.role;
+
+                    // Redirect based on role
+                    if (userRole === "platform_admin" || userRole === "super_admin") {
+                        router.push("/admin");
+                    } else {
+                        router.push("/dashboard");
+                    }
+                } else {
+                    // Default to dashboard if no user data found
+                    router.push("/dashboard");
+                }
+            } else {
+                setError(result.error || "Login failed");
+            }
         } catch (err: any) {
             setError(err.message || "Failed to login");
         } finally {

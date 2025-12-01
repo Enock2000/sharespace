@@ -23,6 +23,11 @@ export default function Home() {
                             </span>
                         </div>
                         <div className="flex gap-4">
+                            <Link href="/pricing">
+                                <button className="px-6 py-2 text-slate-600 hover:text-blue-600 font-medium transition-colors">
+                                    Pricing
+                                </button>
+                            </Link>
                             <Link href="/login">
                                 <button className="px-6 py-2 text-slate-600 hover:text-blue-600 font-medium transition-colors">
                                     Sign In

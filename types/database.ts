@@ -1,10 +1,14 @@
-export type UserRole = "owner" | "admin" | "member" | "viewer";
+export type UserRole = "owner" | "admin" | "member" | "viewer" | "platform_admin" | "super_admin";
 
 export interface Tenant {
     id: string;
     name: string;
     created_at: number;
     owner_id: string;
+    is_suspended: boolean;
+    storage_quota: number; // bytes
+    user_limit: number;
+    plan: "free" | "basic" | "pro" | "enterprise";
 }
 
 export interface User {
