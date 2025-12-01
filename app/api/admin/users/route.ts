@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url);
         const search = searchParams.get("search") || "";
 
-        let users;
+        let users: any[] = [];
         if (search) {
             users = await searchUsers(search);
         } else {
