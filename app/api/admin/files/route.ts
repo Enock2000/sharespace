@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getFirebaseDatabase } from "@/lib/firebase-config";
+import { ref, get } from "firebase/database";
+import { File } from "@/types/database";
 
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
         const tenantId = searchParams.get("tenant");
         const search = searchParams.get("search")?.toLowerCase();
-
-        // Import database
-        const { getFirebaseDatabase } = await import("@/lib/firebase-config");
-        const { ref, get } = await import("firebase/database");
-        const { File } = await import("@/types/database");
 
         const db = getFirebaseDatabase();
         const filesQuery = ref(db, "files");
@@ -19,7 +17,7 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ files: [] });
         }
 
-        let files: any[] = [];
+        let files: File[] = [];
         filesSnapshot.forEach((child) => {
             files.push(child.val());
         });
