@@ -84,6 +84,7 @@ async function getUserRole(userId: string): Promise<string | null> {
  */
 export async function isPlatformAdmin(userId: string): Promise<boolean> {
     const role = await getUserRole(userId);
+    console.log(`[isPlatformAdmin] Checking role for ${userId}:`, role); // DEBUG LOG
     return role === "platform_admin" || role === "super_admin";
 }
 
