@@ -3,9 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(request: NextRequest) {
     try {
         // Import database
-        const { db } = await import("@/lib/database/schema");
+        const { getFirebaseDatabase } = await import("@/lib/firebase-config");
         const { ref, get } = await import("firebase/database");
 
+        const db = getFirebaseDatabase();
         const settingsRef = ref(db, "platform_settings");
         const snapshot = await get(settingsRef);
 
@@ -33,16 +34,21 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
 
         // Import database
-        const { db } = await import("@/lib/database/schema");
+        const { getFirebaseDatabase } = await import("@/lib/firebase-config");
         const { ref, set } = await import("firebase/database");
 
+        const db = getFirebaseDatabase();
         const settingsRef = ref(db, "platform_settings");
         await set(settingsRef, body);
 
         // Log the action
         const { logAdminAction } = await import("@/lib/auth/admin-middleware");
+        // We need a user ID for logging, but in this context we might not have it easily available
+        // without parsing the token again. For now, we'll use "system" or try to get it from headers if needed.
+        // Ideally, this route should be protected by middleware that passes the user.
+
         await logAdminAction(
-            "system",
+            "system", // Placeholder, should be actual admin ID
             "system",
             "settings_update",
             "settings",

@@ -5,34 +5,19 @@ export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
         const search = searchParams.get("search") || "";
-
-        let users;
-        if (search) {
-            users = await searchUsers(search);
-        } else {
-            // Import database functions
-            const { db } = await import("@/lib/database/schema");
-            const { ref, get } = await import("firebase/database");
-
-            const usersRef = ref(db, "users");
-            const snapshot = await get(usersRef);
-
-            users = [];
-            if (snapshot.exists()) {
-                snapshot.forEach((child) => {
-                    users.push({ id: child.key, ...child.val() });
-                });
-            }
+        users.push({ id: child.key, ...child.val() });
+    });
+}
         }
 
-        return NextResponse.json({ users });
+return NextResponse.json({ users });
     } catch (error) {
-        console.error("Error fetching users:", error);
-        return NextResponse.json(
-            { error: "Failed to fetch users" },
-            { status: 500 }
-        );
-    }
+    console.error("Error fetching users:", error);
+    return NextResponse.json(
+        { error: "Failed to fetch users" },
+        { status: 500 }
+    );
+}
 }
 
 export async function PATCH(request: NextRequest) {
