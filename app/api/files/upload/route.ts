@@ -55,7 +55,6 @@ export async function POST(request: Request) {
             "upload_file",
             "file",
             file.id,
-            file.id,
             { name, size, mime_type, provider: fileProvider }
         );
 
