@@ -100,11 +100,7 @@ export default function FilesPage() {
     };
 
     const handleDownload = (file: File) => {
-        if (file.storage_key && file.storage_key.startsWith("http")) {
-            window.open(file.storage_key, "_blank");
-        } else {
-            alert("File URL not found or legacy file.");
-        }
+        window.open(`/api/files/download/${file.id}`, "_blank");
     };
 
     const handleDeleteFile = async (fileId: string) => {
