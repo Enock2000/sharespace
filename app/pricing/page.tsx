@@ -12,10 +12,7 @@ interface PricingPlan {
 }
 
 interface PricingData {
-    free: PricingPlan;
-    basic: PricingPlan;
-    pro: PricingPlan;
-    enterprise: PricingPlan;
+    standard: PricingPlan;
 }
 
 export default function PricingPage() {
@@ -49,32 +46,11 @@ export default function PricingPage() {
 
     const plans = [
         {
-            name: "Free",
-            key: "free" as keyof PricingData,
-            description: "Perfect for trying out",
-            popular: false,
-            color: "slate",
-        },
-        {
-            name: "Basic",
-            key: "basic" as keyof PricingData,
-            description: "For small teams",
-            popular: false,
-            color: "blue",
-        },
-        {
-            name: "Pro",
-            key: "pro" as keyof PricingData,
-            description: "For growing businesses",
+            name: "Premium Plan",
+            key: "standard" as keyof PricingData,
+            description: "All-in-one solution for your team",
             popular: true,
             color: "purple",
-        },
-        {
-            name: "Enterprise",
-            key: "enterprise" as keyof PricingData,
-            description: "For large organizations",
-            popular: false,
-            color: "indigo",
         },
     ];
 
