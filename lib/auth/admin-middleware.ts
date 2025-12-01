@@ -61,9 +61,10 @@ export async function requirePlatformAdmin(request: NextRequest) {
  */
 async function getUserRole(userId: string): Promise<string | null> {
     try {
-        const { db } = await import("@/lib/database/schema");
+        const { getFirebaseDatabase } = await import("@/lib/firebase-config");
         const { ref, get } = await import("firebase/database");
 
+        const db = getFirebaseDatabase();
         const userRef = ref(db, `users/${userId}`);
         const snapshot = await get(userRef);
 
