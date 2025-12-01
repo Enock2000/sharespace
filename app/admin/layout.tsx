@@ -49,6 +49,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         { href: "/admin", label: "Dashboard", icon: Icons.BarChart },
         { href: "/admin/tenants", label: "Tenants", icon: Icons.Users },
         { href: "/admin/users", label: "Users", icon: Icons.User },
+        { href: "/admin/files", label: "Files", icon: Icons.File },
         { href: "/admin/analytics", label: "Analytics", icon: Icons.TrendingUp },
         { href: "/admin/monitoring", label: "Monitoring", icon: Icons.Activity },
         { href: "/admin/audit", label: "Audit Logs", icon: Icons.Scroll },
@@ -105,8 +106,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                     key={link.href}
                                     href={link.href}
                                     className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${isActive
-                                            ? "bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 shadow-sm font-medium"
-                                            : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-200"
+                                        ? "bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 shadow-sm font-medium"
+                                        : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-200"
                                         }`}
                                 >
                                     <Icon className="w-5 h-5" />
