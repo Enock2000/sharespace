@@ -17,7 +17,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     useEffect(() => {
         async function checkAdminAccess() {
             if (!user) {
-                router.push("/login");
+                router.push("/admin/login");
                 return;
             }
 
@@ -26,7 +26,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             setLoading(false);
 
             if (!adminStatus) {
-                router.push("/dashboard");
+                router.push("/admin/login");
             }
         }
 
