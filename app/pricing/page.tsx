@@ -146,8 +146,8 @@ export default function PricingPage() {
                             <div
                                 key={plan.key}
                                 className={`relative bg-white dark:bg-slate-800 rounded-2xl border-2 transition-all hover:scale-105 ${plan.popular
-                                        ? "border-purple-600 shadow-xl shadow-purple-600/20"
-                                        : "border-slate-200 dark:border-slate-700 shadow-lg"
+                                    ? "border-purple-600 shadow-xl shadow-purple-600/20"
+                                    : "border-slate-200 dark:border-slate-700 shadow-lg"
                                     }`}
                             >
                                 {plan.popular && (
@@ -163,7 +163,7 @@ export default function PricingPage() {
                                     <div className="mb-6">
                                         <div className="flex items-baseline gap-2">
                                             <span className="text-5xl font-bold text-slate-900 dark:text-white">
-                                                ${getPrice(planData)}
+                                                ZMW {getPrice(planData)}
                                             </span>
                                             <span className="text-slate-600 dark:text-slate-400">
                                                 /{billingCycle === "monthly" ? "mo" : "yr"}
@@ -171,7 +171,7 @@ export default function PricingPage() {
                                         </div>
                                         {billingCycle === "annual" && planData.price > 0 && (
                                             <p className="text-sm text-slate-500 mt-1">
-                                                ${planData.price}/mo billed annually
+                                                ZMW {planData.price}/mo billed annually
                                             </p>
                                         )}
                                     </div>
@@ -179,8 +179,8 @@ export default function PricingPage() {
                                     <Link
                                         href="/register"
                                         className={`block w-full py-3 rounded-lg font-medium text-center transition-all mb-6 ${plan.popular
-                                                ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:shadow-lg"
-                                                : "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-600"
+                                            ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:shadow-lg"
+                                            : "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-600"
                                             }`}
                                     >
                                         Get Started
