@@ -43,6 +43,20 @@ class BackblazeService {
         return response.data;
     }
 
+    async getDownloadUrl(fileName: string) {
+        await this.authorize();
+        const response = await this.b2.getDownloadAuthorization({
+            bucketId: CONFIG.bucketId,
+            fileNamePrefix: fileName,
+            validDurationInSeconds: 3600, // 1 hour
+        });
+
+        const { authorizationToken, downloadUrl } = response.data;
+        // Construct the full URL
+        // downloadUrl is usually like https://f005.backblazeb2.com
+        return `${downloadUrl}/file/${CONFIG.bucketName}/${fileName}?Authorization=${authorizationToken}`;
+    }
+
     getBucketId() {
         return CONFIG.bucketId;
     }
