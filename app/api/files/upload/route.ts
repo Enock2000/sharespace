@@ -6,13 +6,26 @@ import { User } from "@/types/database";
 
 export async function POST(request: Request) {
     try {
-        const { name, size, mime_type, folderId, userId, filestackUrl, filestackHandle } = await request.json();
+        const { name, size, mime_type, folderId, userId, filestackUrl, filestackHandle, provider, fileId, fileName } = await request.json();
 
-        if (!name || !size || !userId || !filestackUrl) {
+        if (!name || !size || !userId) {
             return NextResponse.json(
                 { error: "Missing required fields" },
                 { status: 400 }
             );
+        }
+
+        // Determine storage key and provider
+        let storageKey = filestackUrl;
+        let fileProvider = provider || "filestack";
+
+        if (fileProvider === "backblaze") {
+            if (!fileId || !fileName) {
+                return NextResponse.json({ error: "Missing B2 file details" }, { status: 400 });
+            }
+            storageKey = fileId; // Store B2 file ID as key
+        } else if (!filestackUrl) {
+            return NextResponse.json({ error: "Missing Filestack URL" }, { status: 400 });
         }
 
         // Get user to find tenant
@@ -22,8 +35,6 @@ export async function POST(request: Request) {
         }
 
         // Create DB record
-        // We store the Filestack URL as the storage_key or add a new field
-        // For backward compatibility, we'll use storage_key for the URL if it's a string
         const file = await createFile(
             user.tenant_id,
             folderId || null, // Use null instead of "root" to match query logic
@@ -32,7 +43,8 @@ export async function POST(request: Request) {
                 name,
                 size,
                 mime_type,
-                storage_key: filestackUrl, // Using URL as storage key for now
+                storage_key: storageKey,
+                provider: fileProvider as "filestack" | "backblaze",
             }
         );
 
@@ -43,7 +55,8 @@ export async function POST(request: Request) {
             "upload_file",
             "file",
             file.id,
-            { name, size, mime_type, provider: "filestack" }
+            file.id,
+            { name, size, mime_type, provider: fileProvider }
         );
 
         return NextResponse.json({
