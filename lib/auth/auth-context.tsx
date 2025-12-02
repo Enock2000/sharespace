@@ -27,14 +27,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setLoading(false);
 
             // Basic client-side protection
-            const isAuthPage = pathname?.startsWith("/login") || pathname?.startsWith("/register") || pathname?.startsWith("/admin/login");
-            const isPublicPage = pathname === "/";
+            const isAuthPage = pathname?.startsWith("/login") || pathname?.startsWith("/register");
+            const isAdminLoginPage = pathname === "/admin/login";
+            const isPublicPage = pathname === "/" || pathname?.startsWith("/pricing");
 
-            if (!user && !isAuthPage && !isPublicPage) {
+            if (!user && !isAuthPage && !isAdminLoginPage && !isPublicPage) {
                 router.push("/login");
             } else if (user && isAuthPage) {
+                // Only redirect regular login, not admin login
                 router.push("/dashboard");
             }
+            // Admin login page handles its own redirects
         });
 
         return () => unsubscribe();
