@@ -15,23 +15,61 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        let mounted = true;
+
         async function checkAdminAccess() {
-            if (!user) {
-                router.push("/admin/login");
-                return;
-            }
+            try {
+                // If on login page, skip the check
+                if (pathname === "/admin/login") {
+                    if (mounted) setLoading(false);
+                    return;
+                }
 
-            const adminStatus = await isPlatformAdmin(user.uid);
-            setIsAdmin(adminStatus);
-            setLoading(false);
+                if (!user) {
+                    if (mounted) {
+                        setLoading(false);
+                        router.push("/admin/login");
+                    }
+                    return;
+                }
 
-            if (!adminStatus) {
-                router.push("/admin/login");
+                // Add timeout to prevent infinite loading
+                const timeout = setTimeout(() => {
+                    if (mounted) {
+                        console.error("Admin check timed out");
+                        setLoading(false);
+                        setIsAdmin(false);
+                        router.push("/admin/login");
+                    }
+                }, 5000);
+
+                const adminStatus = await isPlatformAdmin(user.uid);
+                clearTimeout(timeout);
+
+                if (mounted) {
+                    setIsAdmin(adminStatus);
+                    setLoading(false);
+
+                    if (!adminStatus) {
+                        router.push("/admin/login");
+                    }
+                }
+            } catch (error) {
+                console.error("Admin check error:", error);
+                if (mounted) {
+                    setLoading(false);
+                    setIsAdmin(false);
+                    router.push("/admin/login");
+                }
             }
         }
 
         checkAdminAccess();
-    }, [user, router]);
+
+        return () => {
+            mounted = false;
+        };
+    }, [user, router, pathname]);
 
     if (loading) {
         return (
