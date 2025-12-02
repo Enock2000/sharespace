@@ -79,6 +79,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         );
     }
 
+    // Allow login page to render even if not admin
+    if (pathname === "/admin/login") {
+        return <>{children}</>;
+    }
+
     if (!isAdmin) {
         return null;
     }
