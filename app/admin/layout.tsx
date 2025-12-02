@@ -8,7 +8,7 @@ import { Icons } from "@/components/ui/icons";
 import { isPlatformAdmin } from "@/lib/auth/admin-middleware";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
     const [isAdmin, setIsAdmin] = useState(false);
@@ -22,6 +22,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 // If on login page, skip the check
                 if (pathname === "/admin/login") {
                     if (mounted) setLoading(false);
+                    return;
+                }
+
+                // Wait for auth to initialize
+                if (authLoading) {
                     return;
                 }
 
@@ -69,7 +74,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         return () => {
             mounted = false;
         };
-    }, [user, router, pathname]);
+    }, [user, authLoading, router, pathname]);
 
     if (loading) {
         return (
