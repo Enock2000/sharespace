@@ -122,8 +122,8 @@ export default function AdminLoginPage() {
                 {/* Logo */}
                 <div className="text-center mb-8">
                     <div className="inline-flex items-center gap-3 mb-2">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
-                            <Icons.Shield className="w-7 h-7 text-white" />
+                        <div className="w-auto h-12 rounded-xl flex items-center justify-center overflow-hidden">
+                            <Icons.Logo className="w-full h-full object-contain" />
                         </div>
                         <span className="text-3xl font-bold text-gradient">Platform Admin</span>
                     </div>
