@@ -1,5 +1,3 @@
-'use server';
-
 import { z } from 'zod';
 
 const base = process.env.VSHR_BASE_URL!;
