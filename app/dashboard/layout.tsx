@@ -66,6 +66,7 @@ function Sidebar() {
         { href: "/dashboard/files", label: "Files", icon: Icons.File },
         { href: "/dashboard/users", label: "Team", icon: Icons.Users },
         { href: "/dashboard/audit", label: "Audit Logs", icon: Icons.Scroll },
+        { href: "/dashboard/billing", label: "Billing", icon: Icons.CreditCard },
     ];
 
     const formatBytes = (bytes: number) => {
