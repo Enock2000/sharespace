@@ -5,64 +5,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { Icons } from "@/components/ui/icons";
 import LencoPayButton from "@/components/payments/LencoPayButton";
 
-interface SubscriptionPlan {
-    id: string;
-    name: string;
-    price: number;
-    currency: string;
-    period: string;
-    features: string[];
-    popular?: boolean;
-}
-
-const plans: SubscriptionPlan[] = [
-    {
-        id: "starter",
-        name: "Starter",
-        price: 99,
-        currency: "ZMW",
-        period: "month",
-        features: [
-            "Up to 5 team members",
-            "5 GB storage",
-            "Basic file sharing",
-            "Email support",
-        ],
-    },
-    {
-        id: "professional",
-        name: "Professional",
-        price: 299,
-        currency: "ZMW",
-        period: "month",
-        popular: true,
-        features: [
-            "Up to 25 team members",
-            "50 GB storage",
-            "Advanced file sharing",
-            "Priority support",
-            "Activity analytics",
-            "Custom branding",
-        ],
-    },
-    {
-        id: "enterprise",
-        name: "Enterprise",
-        price: 799,
-        currency: "ZMW",
-        period: "month",
-        features: [
-            "Unlimited team members",
-            "500 GB storage",
-            "Enterprise file sharing",
-            "24/7 dedicated support",
-            "Advanced analytics",
-            "Custom integrations",
-            "SSO & SAML",
-            "Audit logs",
-        ],
-    },
-];
+type BillingPeriod = "monthly" | "annually";
 
 interface BillingHistory {
     id: string;
@@ -75,27 +18,9 @@ interface BillingHistory {
 
 export default function BillingPage() {
     const { user } = useAuth();
-    const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
-    const [currentPlan, setCurrentPlan] = useState<string>("starter");
+    const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>("monthly");
     const [showPaymentModal, setShowPaymentModal] = useState(false);
-    const [billingHistory, setBillingHistory] = useState<BillingHistory[]>([
-        {
-            id: "1",
-            date: "2024-11-01",
-            amount: 99,
-            currency: "ZMW",
-            status: "paid",
-            description: "Starter Plan - November 2024",
-        },
-        {
-            id: "2",
-            date: "2024-10-01",
-            amount: 99,
-            currency: "ZMW",
-            status: "paid",
-            description: "Starter Plan - October 2024",
-        },
-    ]);
+    const [billingHistory, setBillingHistory] = useState<BillingHistory[]>([]);
     const [userInfo, setUserInfo] = useState({
         firstName: "",
         lastName: "",
@@ -103,46 +28,40 @@ export default function BillingPage() {
         phone: "",
     });
 
+    // Pricing
+    const monthlyPrice = 600;
+    const annualPrice = 570; // Per month when paid annually
+    const annualTotal = annualPrice * 12; // 6840 ZMW total
+    const currentPrice = billingPeriod === "monthly" ? monthlyPrice : annualPrice;
+    const savings = (monthlyPrice - annualPrice) * 12; // 360 ZMW saved annually
+
     useEffect(() => {
         if (user) {
-            // In production, fetch user details from database
             setUserInfo({
                 firstName: user.displayName?.split(" ")[0] || "User",
                 lastName: user.displayName?.split(" ")[1] || "",
                 email: user.email || "",
-                phone: "", // Would come from user profile
+                phone: "",
             });
         }
     }, [user]);
 
-    const handleSelectPlan = (plan: SubscriptionPlan) => {
-        setSelectedPlan(plan);
-        setShowPaymentModal(true);
-    };
-
     const handlePaymentSuccess = () => {
         setShowPaymentModal(false);
-        if (selectedPlan) {
-            setCurrentPlan(selectedPlan.id);
-            // Add to billing history
-            setBillingHistory([
-                {
-                    id: Date.now().toString(),
-                    date: new Date().toISOString().split("T")[0],
-                    amount: selectedPlan.price,
-                    currency: selectedPlan.currency,
-                    status: "paid",
-                    description: `${selectedPlan.name} Plan - ${new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}`,
-                },
-                ...billingHistory,
-            ]);
-        }
-        alert("Payment successful! Your subscription has been updated.");
+        const newEntry: BillingHistory = {
+            id: Date.now().toString(),
+            date: new Date().toISOString().split("T")[0],
+            amount: billingPeriod === "monthly" ? monthlyPrice : annualTotal,
+            currency: "ZMW",
+            status: "paid",
+            description: `Shared Spaces - ${billingPeriod === "monthly" ? "Monthly" : "Annual"} Subscription`,
+        };
+        setBillingHistory([newEntry, ...billingHistory]);
+        alert("Payment successful! Your subscription has been activated.");
     };
 
     const handlePaymentClose = () => {
         setShowPaymentModal(false);
-        setSelectedPlan(null);
     };
 
     return (
@@ -159,98 +78,90 @@ export default function BillingPage() {
                 </div>
             </div>
 
-            {/* Current Plan Status */}
-            <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-6 text-white">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <p className="text-purple-200 text-sm">Current Plan</p>
-                        <h2 className="text-2xl font-bold mt-1">
-                            {plans.find((p) => p.id === currentPlan)?.name || "Free"}
-                        </h2>
-                        <p className="text-purple-200 mt-2">
-                            Next billing date: December 1, 2024
-                        </p>
-                    </div>
-                    <div className="text-right">
-                        <p className="text-3xl font-bold">
-                            {plans.find((p) => p.id === currentPlan)?.price || 0} ZMW
-                        </p>
-                        <p className="text-purple-200">per month</p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Subscription Plans */}
-            <div>
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                    Choose Your Plan
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {plans.map((plan) => (
-                        <div
-                            key={plan.id}
-                            className={`relative bg-white dark:bg-slate-800 rounded-2xl p-6 border-2 transition-all ${plan.popular
-                                    ? "border-purple-500 shadow-lg shadow-purple-500/20"
-                                    : "border-gray-200 dark:border-slate-700 hover:border-purple-300"
-                                } ${currentPlan === plan.id
-                                    ? "ring-2 ring-green-500 ring-offset-2"
-                                    : ""
+            {/* Pricing Card */}
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 overflow-hidden">
+                {/* Billing Period Toggle */}
+                <div className="p-6 border-b border-gray-200 dark:border-slate-700">
+                    <div className="flex items-center justify-center gap-4">
+                        <span className={`text-sm font-medium ${billingPeriod === "monthly" ? "text-gray-900 dark:text-white" : "text-gray-500"}`}>
+                            Monthly
+                        </span>
+                        <button
+                            onClick={() => setBillingPeriod(billingPeriod === "monthly" ? "annually" : "monthly")}
+                            className={`relative w-14 h-7 rounded-full transition-colors ${billingPeriod === "annually" ? "bg-purple-600" : "bg-gray-300 dark:bg-slate-600"
                                 }`}
                         >
-                            {plan.popular && (
-                                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                                    <span className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-semibold px-3 py-1 rounded-full">
-                                        Most Popular
-                                    </span>
-                                </div>
-                            )}
-                            {currentPlan === plan.id && (
-                                <div className="absolute -top-3 right-4">
-                                    <span className="bg-green-500 text-white text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1">
-                                        <Icons.Check className="w-3 h-3" /> Current
-                                    </span>
-                                </div>
-                            )}
-
-                            <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                                {plan.name}
-                            </h3>
-                            <div className="mt-4">
-                                <span className="text-4xl font-bold text-gray-900 dark:text-white">
-                                    {plan.price}
-                                </span>
-                                <span className="text-gray-500 dark:text-gray-400">
-                                    {" "}
-                                    {plan.currency}/{plan.period}
-                                </span>
-                            </div>
-
-                            <ul className="mt-6 space-y-3">
-                                {plan.features.map((feature, index) => (
-                                    <li
-                                        key={index}
-                                        className="flex items-center gap-2 text-gray-600 dark:text-gray-300"
-                                    >
-                                        <Icons.Check className="w-5 h-5 text-green-500 flex-shrink-0" />
-                                        <span>{feature}</span>
-                                    </li>
-                                ))}
-                            </ul>
-
-                            <button
-                                onClick={() => handleSelectPlan(plan)}
-                                disabled={currentPlan === plan.id}
-                                className={`w-full mt-6 py-3 rounded-xl font-semibold transition-all ${currentPlan === plan.id
-                                        ? "bg-gray-100 dark:bg-slate-700 text-gray-400 cursor-not-allowed"
-                                        : plan.popular
-                                            ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:shadow-lg hover:shadow-purple-500/30"
-                                            : "bg-gray-100 dark:bg-slate-700 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-slate-600"
+                            <span
+                                className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-transform shadow ${billingPeriod === "annually" ? "translate-x-8" : "translate-x-1"
                                     }`}
-                            >
-                                {currentPlan === plan.id ? "Current Plan" : "Select Plan"}
-                            </button>
-                        </div>
-                    ))}
+                            />
+                        </button>
+                        <span className={`text-sm font-medium ${billingPeriod === "annually" ? "text-gray-900 dark:text-white" : "text-gray-500"}`}>
+                            Annually
+                        </span>
+                        {billingPeriod === "annually" && (
+                            <span className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-semibold px-2 py-1 rounded-full">
+                                Save {savings} ZMW/year
+                            </span>
+                        )}
+                    </div>
+                </div>
+
+                {/* Price Display */}
+                <div className="p-8 text-center">
+                    <div className="inline-flex items-center gap-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 px-4 py-2 rounded-full text-sm font-medium mb-6">
+                        <Icons.Logo className="w-5 h-5" />
+                        Shared Spaces Pro
+                    </div>
+
+                    <div className="mb-4">
+                        <span className="text-5xl font-bold text-gray-900 dark:text-white">
+                            {currentPrice}
+                        </span>
+                        <span className="text-xl text-gray-500 dark:text-gray-400 ml-2">
+                            ZMW/month
+                        </span>
+                    </div>
+
+                    {billingPeriod === "annually" && (
+                        <p className="text-gray-500 dark:text-gray-400 mb-6">
+                            Billed as {annualTotal} ZMW annually
+                        </p>
+                    )}
+
+                    <ul className="text-left max-w-md mx-auto space-y-3 mb-8">
+                        <li className="flex items-center gap-3 text-gray-600 dark:text-gray-300">
+                            <Icons.Check className="w-5 h-5 text-green-500 flex-shrink-0" />
+                            Unlimited team members
+                        </li>
+                        <li className="flex items-center gap-3 text-gray-600 dark:text-gray-300">
+                            <Icons.Check className="w-5 h-5 text-green-500 flex-shrink-0" />
+                            250 GB secure storage
+                        </li>
+                        <li className="flex items-center gap-3 text-gray-600 dark:text-gray-300">
+                            <Icons.Check className="w-5 h-5 text-green-500 flex-shrink-0" />
+                            Advanced file sharing & permissions
+                        </li>
+                        <li className="flex items-center gap-3 text-gray-600 dark:text-gray-300">
+                            <Icons.Check className="w-5 h-5 text-green-500 flex-shrink-0" />
+                            Priority email & chat support
+                        </li>
+                        <li className="flex items-center gap-3 text-gray-600 dark:text-gray-300">
+                            <Icons.Check className="w-5 h-5 text-green-500 flex-shrink-0" />
+                            Activity audit logs
+                        </li>
+                        <li className="flex items-center gap-3 text-gray-600 dark:text-gray-300">
+                            <Icons.Check className="w-5 h-5 text-green-500 flex-shrink-0" />
+                            Custom branding
+                        </li>
+                    </ul>
+
+                    <button
+                        onClick={() => setShowPaymentModal(true)}
+                        className="px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-semibold shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 transition-all hover:scale-[1.02]"
+                    >
+                        Subscribe Now
+                    </button>
                 </div>
             </div>
 
@@ -294,71 +205,58 @@ export default function BillingPage() {
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
                     Billing History
                 </h2>
-                <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead>
-                            <tr className="border-b border-gray-200 dark:border-slate-700">
-                                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                                    Date
-                                </th>
-                                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                                    Description
-                                </th>
-                                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                                    Amount
-                                </th>
-                                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                                    Status
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {billingHistory.map((item) => (
-                                <tr
-                                    key={item.id}
-                                    className="border-b border-gray-100 dark:border-slate-700/50"
-                                >
-                                    <td className="py-4 px-4 text-gray-900 dark:text-white">
-                                        {new Date(item.date).toLocaleDateString()}
-                                    </td>
-                                    <td className="py-4 px-4 text-gray-600 dark:text-gray-300">
-                                        {item.description}
-                                    </td>
-                                    <td className="py-4 px-4 text-gray-900 dark:text-white font-medium">
-                                        {item.amount} {item.currency}
-                                    </td>
-                                    <td className="py-4 px-4">
-                                        <span
-                                            className={`px-2 py-1 rounded-full text-xs font-medium ${item.status === "paid"
+                {billingHistory.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                        <Icons.CreditCard className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                        <p>No billing history yet</p>
+                        <p className="text-sm">Your payment history will appear here</p>
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead>
+                                <tr className="border-b border-gray-200 dark:border-slate-700">
+                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Date</th>
+                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Description</th>
+                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Amount</th>
+                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {billingHistory.map((item) => (
+                                    <tr key={item.id} className="border-b border-gray-100 dark:border-slate-700/50">
+                                        <td className="py-4 px-4 text-gray-900 dark:text-white">
+                                            {new Date(item.date).toLocaleDateString()}
+                                        </td>
+                                        <td className="py-4 px-4 text-gray-600 dark:text-gray-300">{item.description}</td>
+                                        <td className="py-4 px-4 text-gray-900 dark:text-white font-medium">
+                                            {item.amount} {item.currency}
+                                        </td>
+                                        <td className="py-4 px-4">
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${item.status === "paid"
                                                     ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                                                     : item.status === "pending"
                                                         ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
                                                         : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                                                }`}
-                                        >
-                                            {item.status.charAt(0).toUpperCase() +
-                                                item.status.slice(1)}
-                                        </span>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                                                }`}>
+                                                {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
 
             {/* Payment Modal */}
-            {showPaymentModal && selectedPlan && (
+            {showPaymentModal && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
                         <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                                Complete Payment
-                            </h2>
-                            <button
-                                onClick={handlePaymentClose}
-                                className="text-gray-400 hover:text-gray-600"
-                            >
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Complete Payment</h2>
+                            <button onClick={handlePaymentClose} className="text-gray-400 hover:text-gray-600">
                                 <Icons.X className="w-6 h-6" />
                             </button>
                         </div>
@@ -366,19 +264,17 @@ export default function BillingPage() {
                         <div className="bg-gray-50 dark:bg-slate-700 rounded-xl p-4 mb-6">
                             <div className="flex justify-between items-center">
                                 <div>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                                        Selected Plan
-                                    </p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">Shared Spaces Pro</p>
                                     <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                                        {selectedPlan.name}
+                                        {billingPeriod === "monthly" ? "Monthly" : "Annual"} Plan
                                     </p>
                                 </div>
                                 <div className="text-right">
                                     <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                                        {selectedPlan.price} {selectedPlan.currency}
+                                        {billingPeriod === "monthly" ? monthlyPrice : annualTotal} ZMW
                                     </p>
                                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                                        per {selectedPlan.period}
+                                        {billingPeriod === "monthly" ? "per month" : "per year"}
                                     </p>
                                 </div>
                             </div>
@@ -392,17 +288,15 @@ export default function BillingPage() {
                                 <input
                                     type="tel"
                                     value={userInfo.phone}
-                                    onChange={(e) =>
-                                        setUserInfo({ ...userInfo, phone: e.target.value })
-                                    }
+                                    onChange={(e) => setUserInfo({ ...userInfo, phone: e.target.value })}
                                     placeholder="260971234567"
-                                    className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                    className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 dark:text-white"
                                 />
                             </div>
 
                             <LencoPayButton
-                                amount={selectedPlan.price}
-                                currency={selectedPlan.currency}
+                                amount={billingPeriod === "monthly" ? monthlyPrice : annualTotal}
+                                currency="ZMW"
                                 email={userInfo.email}
                                 firstName={userInfo.firstName}
                                 lastName={userInfo.lastName}
@@ -412,7 +306,7 @@ export default function BillingPage() {
                                 className="w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-semibold shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
                             >
                                 <Icons.CreditCard className="w-5 h-5" />
-                                Pay {selectedPlan.price} {selectedPlan.currency}
+                                Pay {billingPeriod === "monthly" ? monthlyPrice : annualTotal} ZMW
                             </LencoPayButton>
 
                             <p className="text-xs text-center text-gray-500 dark:text-gray-400">
