@@ -45,6 +45,7 @@ export default function FoldersPage() {
     const [currentFileIndex, setCurrentFileIndex] = useState(0);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [uploadTargetFolderId, setUploadTargetFolderId] = useState<string | null>(null);
+    const [uploadMinimized, setUploadMinimized] = useState(false);
 
     const [error, setError] = useState("");
 
@@ -345,7 +346,7 @@ export default function FoldersPage() {
             />
 
             {/* Upload Progress Modal */}
-            {uploading && uploadProgress && (
+            {uploading && uploadProgress && !uploadMinimized && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-lg mx-4 shadow-2xl">
                         <div className="flex items-center gap-3 mb-4">
@@ -360,14 +361,21 @@ export default function FoldersPage() {
                                     {uploadProgress.fileName}
                                 </p>
                             </div>
+                            <button
+                                onClick={() => setUploadMinimized(true)}
+                                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                                title="Hide to background"
+                            >
+                                <span className="text-xl font-bold text-slate-500">−</span>
+                            </button>
                         </div>
 
                         {/* Progress Bar */}
                         <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3 mb-4 overflow-hidden">
                             <div
                                 className={`h-full rounded-full transition-all duration-300 ${uploadProgress.status === "error"
-                                        ? "bg-red-500"
-                                        : "bg-gradient-to-r from-blue-600 to-purple-600"
+                                    ? "bg-red-500"
+                                    : "bg-gradient-to-r from-blue-600 to-purple-600"
                                     }`}
                                 style={{ width: `${uploadProgress.percent}%` }}
                             />
@@ -420,6 +428,48 @@ export default function FoldersPage() {
                                     </span>
                                 </>
                             )}
+                        </div>
+
+                        {/* Hide to Background Button */}
+                        <button
+                            onClick={() => setUploadMinimized(true)}
+                            className="w-full mt-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors font-medium"
+                        >
+                            Hide to Background
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Minimized Upload Indicator */}
+            {uploading && uploadProgress && uploadMinimized && (
+                <div
+                    onClick={() => setUploadMinimized(false)}
+                    className="fixed bottom-6 right-6 z-[100] cursor-pointer animate-bounce"
+                    style={{ animationDuration: "2s" }}
+                >
+                    <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-5 py-4 rounded-2xl shadow-2xl flex items-center gap-4 hover:scale-105 transition-transform border-2 border-white/30">
+                        <div className="relative">
+                            <Icons.UploadCloud className="w-8 h-8" />
+                            <div className="absolute -top-2 -right-2 w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center animate-pulse">
+                                <span className="text-xs font-bold text-black">{currentFileIndex}</span>
+                            </div>
+                        </div>
+                        <div className="text-sm">
+                            <div className="font-bold text-base">Uploading {currentFileIndex} of {totalFiles}</div>
+                            <div className="text-white/80 text-sm">{uploadProgress.percent}% • Click to View</div>
+                        </div>
+                        <div className="w-14 h-14 relative">
+                            <svg className="w-14 h-14 transform -rotate-90">
+                                <circle cx="28" cy="28" r="24" stroke="rgba(255,255,255,0.2)" strokeWidth="5" fill="none" />
+                                <circle
+                                    cx="28" cy="28" r="24"
+                                    stroke="white" strokeWidth="5" fill="none"
+                                    strokeDasharray={`${uploadProgress.percent * 1.508} 150.8`}
+                                    className="transition-all duration-300"
+                                />
+                            </svg>
+                            <span className="absolute inset-0 flex items-center justify-center text-sm font-bold">{uploadProgress.percent}%</span>
                         </div>
                     </div>
                 </div>
