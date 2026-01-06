@@ -25,7 +25,7 @@ export default function FileUploader({
         try {
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
-                await uploadFileToBackblaze(file);
+                await uploadFile(file);
                 setProgress(Math.round(((i + 1) / files.length) * 100));
             }
             onUploadComplete();
@@ -42,53 +42,23 @@ export default function FileUploader({
         }
     };
 
-    const uploadFileToBackblaze = async (file: File) => {
-        // Step 1: Get upload URL from our API
-        const urlResponse = await fetch("/api/files/upload-url");
-        if (!urlResponse.ok) {
-            throw new Error("Failed to get upload URL");
-        }
-        const { uploadUrl, authorizationToken } = await urlResponse.json();
+    const uploadFile = async (file: File) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("userId", user!.uid);
+        formData.append("folderId", currentFolderId || "null");
 
-        // Step 2: Upload file directly to Backblaze B2
-        const uploadResponse = await fetch(uploadUrl, {
+        const response = await fetch("/api/files/upload-file", {
             method: "POST",
-            headers: {
-                "Authorization": authorizationToken,
-                "X-Bz-File-Name": encodeURIComponent(file.name),
-                "Content-Type": file.type || "application/octet-stream",
-                "X-Bz-Content-Sha1": "do_not_verify"
-            },
-            body: file
+            body: formData
         });
 
-        if (!uploadResponse.ok) {
-            const errorText = await uploadResponse.text();
-            console.error("B2 Upload Error:", errorText);
-            throw new Error("Failed to upload to Backblaze");
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || "Upload failed");
         }
 
-        const uploadResult = await uploadResponse.json();
-
-        // Step 3: Save metadata to our database
-        const saveResponse = await fetch("/api/files/upload", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                name: file.name,
-                size: file.size,
-                mime_type: file.type || "application/octet-stream",
-                folderId: currentFolderId,
-                userId: user?.uid,
-                provider: "backblaze",
-                fileId: uploadResult.fileId,
-                fileName: uploadResult.fileName
-            }),
-        });
-
-        if (!saveResponse.ok) {
-            throw new Error("Failed to save file metadata");
-        }
+        return await response.json();
     };
 
     const handleClick = () => {
