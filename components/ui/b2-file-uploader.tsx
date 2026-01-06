@@ -253,35 +253,37 @@ export default function B2FileUploader({
                 <span>Upload Files</span>
             </button>
 
-            {/* Minimized Floating Button */}
+            {/* Minimized Floating Button - Click to View Uploads */}
             {isVisible && isMinimized && (
                 <div
                     onClick={() => setIsMinimized(false)}
-                    className="fixed bottom-6 right-6 z-50 cursor-pointer"
+                    className="fixed bottom-6 right-6 z-[100] cursor-pointer animate-bounce"
+                    style={{ animationDuration: "2s" }}
                 >
-                    <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-3 rounded-full shadow-2xl flex items-center gap-3 hover:scale-105 transition-transform">
+                    <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-5 py-4 rounded-2xl shadow-2xl flex items-center gap-4 hover:scale-105 transition-transform border-2 border-white/30">
                         <div className="relative">
-                            <Icons.UploadCloud className="w-6 h-6" />
+                            <Icons.UploadCloud className="w-8 h-8" />
                             {activeUploads.length > 0 && (
-                                <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center">
+                                <div className="absolute -top-2 -right-2 w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center animate-pulse">
                                     <span className="text-xs font-bold text-black">{activeUploads.length}</span>
                                 </div>
                             )}
                         </div>
                         <div className="text-sm">
-                            <div className="font-semibold">{activeUploads.length} uploading</div>
-                            <div className="text-white/70 text-xs">{totalProgress}% complete</div>
+                            <div className="font-bold text-base">{activeUploads.length > 0 ? `${activeUploads.length} Uploading` : "Uploads Complete"}</div>
+                            <div className="text-white/80 text-sm">{totalProgress}% • Click to View</div>
                         </div>
-                        <div className="w-12 h-12 relative">
-                            <svg className="w-12 h-12 transform -rotate-90">
-                                <circle cx="24" cy="24" r="20" stroke="rgba(255,255,255,0.2)" strokeWidth="4" fill="none" />
+                        <div className="w-14 h-14 relative">
+                            <svg className="w-14 h-14 transform -rotate-90">
+                                <circle cx="28" cy="28" r="24" stroke="rgba(255,255,255,0.2)" strokeWidth="5" fill="none" />
                                 <circle
-                                    cx="24" cy="24" r="20"
-                                    stroke="white" strokeWidth="4" fill="none"
-                                    strokeDasharray={`${totalProgress * 1.256} 125.6`}
+                                    cx="28" cy="28" r="24"
+                                    stroke="white" strokeWidth="5" fill="none"
+                                    strokeDasharray={`${totalProgress * 1.508} 150.8`}
                                     className="transition-all duration-300"
                                 />
                             </svg>
+                            <span className="absolute inset-0 flex items-center justify-center text-sm font-bold">{totalProgress}%</span>
                         </div>
                     </div>
                 </div>
@@ -341,10 +343,10 @@ export default function B2FileUploader({
                             <div
                                 key={upload.id}
                                 className={`p-3 rounded-lg border ${upload.status === "complete"
-                                        ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
-                                        : upload.status === "error"
-                                            ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
-                                            : "bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700"
+                                    ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
+                                    : upload.status === "error"
+                                        ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
+                                        : "bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700"
                                     }`}
                             >
                                 <div className="flex items-center gap-2 mb-2">
@@ -400,7 +402,8 @@ export default function B2FileUploader({
                         </div>
                     )}
                 </div>
-            )}
+            )
+            }
         </>
     );
 }
