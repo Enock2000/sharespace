@@ -1,10 +1,20 @@
 "use client";
 
 import { useAuth } from "@/lib/auth/auth-context";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Folder } from "@/types/database";
 import { useRouter } from "next/navigation";
 import { Icons } from "@/components/ui/icons";
+
+interface UploadProgress {
+    fileName: string;
+    loaded: number;
+    total: number;
+    percent: number;
+    speed: number;
+    timeRemaining: number;
+    status: "uploading" | "processing" | "complete" | "error";
+}
 
 export default function FoldersPage() {
     const { user } = useAuth();
@@ -29,11 +39,32 @@ export default function FoldersPage() {
 
     // Upload State
     const [uploading, setUploading] = useState(false);
-    const [uploadProgress, setUploadProgress] = useState(0);
+    const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
+    const [totalFiles, setTotalFiles] = useState(0);
+    const [currentFileIndex, setCurrentFileIndex] = useState(0);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [uploadTargetFolderId, setUploadTargetFolderId] = useState<string | null>(null);
 
     const [error, setError] = useState("");
+
+    // Format helpers
+    const formatBytes = (bytes: number): string => {
+        if (bytes === 0) return "0 B";
+        const k = 1024;
+        const sizes = ["B", "KB", "MB", "GB"];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+    };
+
+    const formatTime = (seconds: number): string => {
+        if (seconds < 60) return `${Math.round(seconds)}s`;
+        if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${Math.round(seconds % 60)}s`;
+        return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+    };
+
+    const formatSpeed = (bytesPerSecond: number): string => {
+        return formatBytes(bytesPerSecond) + "/s";
+    };
 
     // Close menu when clicking outside
     useEffect(() => {
@@ -139,18 +170,89 @@ export default function FoldersPage() {
         fileInputRef.current?.click();
     };
 
+    const uploadFileWithProgress = useCallback((file: File, folderId: string): Promise<void> => {
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("userId", user!.uid);
+            formData.append("folderId", folderId);
+
+            let startTime = Date.now();
+            let lastLoaded = 0;
+            let lastTime = startTime;
+
+            xhr.upload.addEventListener("progress", (event) => {
+                if (event.lengthComputable) {
+                    const currentTime = Date.now();
+                    const timeDiff = (currentTime - lastTime) / 1000;
+                    const loadedDiff = event.loaded - lastLoaded;
+
+                    const instantSpeed = timeDiff > 0 ? loadedDiff / timeDiff : 0;
+                    const overallElapsed = (currentTime - startTime) / 1000;
+                    const overallSpeed = overallElapsed > 0 ? event.loaded / overallElapsed : 0;
+                    const speed = (instantSpeed + overallSpeed) / 2;
+
+                    const remaining = event.total - event.loaded;
+                    const timeRemaining = speed > 0 ? remaining / speed : 0;
+
+                    setUploadProgress({
+                        fileName: file.name,
+                        loaded: event.loaded,
+                        total: event.total,
+                        percent: Math.round((event.loaded / event.total) * 100),
+                        speed: speed,
+                        timeRemaining: timeRemaining,
+                        status: "uploading"
+                    });
+
+                    lastLoaded = event.loaded;
+                    lastTime = currentTime;
+                }
+            });
+
+            xhr.addEventListener("load", () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    setUploadProgress(prev => prev ? { ...prev, status: "complete" } : null);
+                    resolve();
+                } else {
+                    setUploadProgress(prev => prev ? { ...prev, status: "error" } : null);
+                    reject(new Error(xhr.responseText || "Upload failed"));
+                }
+            });
+
+            xhr.addEventListener("error", () => {
+                setUploadProgress(prev => prev ? { ...prev, status: "error" } : null);
+                reject(new Error("Network error during upload"));
+            });
+
+            xhr.open("POST", "/api/files/upload-file");
+            xhr.send(formData);
+
+            setUploadProgress({
+                fileName: file.name,
+                loaded: 0,
+                total: file.size,
+                percent: 0,
+                speed: 0,
+                timeRemaining: 0,
+                status: "uploading"
+            });
+        });
+    }, [user]);
+
     const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const files = event.target.files;
         if (!files || files.length === 0 || !user || !uploadTargetFolderId) return;
 
         setUploading(true);
-        setUploadProgress(0);
+        setTotalFiles(files.length);
+        setCurrentFileIndex(0);
 
         try {
             for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-                await uploadFile(file, uploadTargetFolderId);
-                setUploadProgress(Math.round(((i + 1) / files.length) * 100));
+                setCurrentFileIndex(i + 1);
+                await uploadFileWithProgress(files[i], uploadTargetFolderId);
             }
             alert("Files uploaded successfully!");
         } catch (error) {
@@ -158,31 +260,14 @@ export default function FoldersPage() {
             alert("Upload failed. Please try again.");
         } finally {
             setUploading(false);
-            setUploadProgress(0);
+            setUploadProgress(null);
+            setTotalFiles(0);
+            setCurrentFileIndex(0);
             setUploadTargetFolderId(null);
             if (fileInputRef.current) {
                 fileInputRef.current.value = "";
             }
         }
-    };
-
-    const uploadFile = async (file: File, folderId: string) => {
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("userId", user!.uid);
-        formData.append("folderId", folderId);
-
-        const response = await fetch("/api/files/upload-file", {
-            method: "POST",
-            body: formData
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || "Upload failed");
-        }
-
-        return await response.json();
     };
 
     const formatDate = (timestamp: number) => {
@@ -200,21 +285,73 @@ export default function FoldersPage() {
                 multiple
                 onChange={handleFileSelect}
                 className="hidden"
-                accept="image/*,application/pdf,video/*,audio/*,text/*,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar"
+                accept="*/*"
             />
 
-            {/* Upload Progress Overlay */}
-            {uploading && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 w-full max-w-md shadow-2xl">
-                        <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-4">Uploading Files...</h3>
-                        <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3 mb-4">
-                            <div
-                                className="bg-gradient-to-r from-blue-600 to-purple-600 h-3 rounded-full transition-all duration-300"
-                                style={{ width: `${uploadProgress}%` }}
-                            ></div>
+            {/* Upload Progress Modal */}
+            {uploading && uploadProgress && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-lg mx-4 shadow-2xl">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                                <Icons.UploadCloud className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                            </div>
+                            <div>
+                                <h3 className="font-semibold text-slate-900 dark:text-white">
+                                    Uploading File {currentFileIndex} of {totalFiles}
+                                </h3>
+                                <p className="text-sm text-slate-500 dark:text-slate-400 truncate max-w-xs">
+                                    {uploadProgress.fileName}
+                                </p>
+                            </div>
                         </div>
-                        <p className="text-center text-slate-600 dark:text-slate-400">{uploadProgress}% Complete</p>
+
+                        {/* Progress Bar */}
+                        <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3 mb-4 overflow-hidden">
+                            <div
+                                className="bg-gradient-to-r from-blue-600 to-purple-600 h-full rounded-full transition-all duration-300"
+                                style={{ width: `${uploadProgress.percent}%` }}
+                            />
+                        </div>
+
+                        {/* Stats Grid */}
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-3">
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Progress</p>
+                                <p className="font-semibold text-slate-900 dark:text-white">
+                                    {formatBytes(uploadProgress.loaded)} / {formatBytes(uploadProgress.total)}
+                                </p>
+                            </div>
+                            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-3">
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Percentage</p>
+                                <p className="font-semibold text-slate-900 dark:text-white">
+                                    {uploadProgress.percent}%
+                                </p>
+                            </div>
+                            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-3">
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Speed</p>
+                                <p className="font-semibold text-blue-600 dark:text-blue-400">
+                                    {formatSpeed(uploadProgress.speed)}
+                                </p>
+                            </div>
+                            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-3">
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Time Remaining</p>
+                                <p className="font-semibold text-purple-600 dark:text-purple-400">
+                                    {uploadProgress.timeRemaining > 0 ? formatTime(uploadProgress.timeRemaining) : "Calculating..."}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Status */}
+                        <div className="flex items-center justify-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+                            <span>
+                                {uploadProgress.status === "uploading" && "Uploading to cloud storage..."}
+                                {uploadProgress.status === "processing" && "Processing file..."}
+                                {uploadProgress.status === "complete" && "Complete!"}
+                                {uploadProgress.status === "error" && "Error occurred"}
+                            </span>
+                        </div>
                     </div>
                 </div>
             )}
