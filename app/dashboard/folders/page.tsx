@@ -4,8 +4,6 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { useEffect, useState, useRef } from "react";
 import { Folder } from "@/types/database";
 import { useRouter } from "next/navigation";
-import { client, FILESTACK_OPTIONS } from "@/lib/filestack-config";
-import { PickerFileMetadata } from "filestack-js";
 import { Icons } from "@/components/ui/icons";
 
 export default function FoldersPage() {
@@ -28,6 +26,12 @@ export default function FoldersPage() {
     // Context Menu State
     const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
     const menuRef = useRef<HTMLDivElement>(null);
+
+    // Upload State
+    const [uploading, setUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [uploadTargetFolderId, setUploadTargetFolderId] = useState<string | null>(null);
 
     const [error, setError] = useState("");
 
@@ -131,36 +135,84 @@ export default function FoldersPage() {
     };
 
     const handleUploadToFolder = (folderId: string) => {
-        if (!user) return;
-        const pickerOptions = {
-            ...FILESTACK_OPTIONS,
-            onUploadDone: async (res: any) => {
-                try {
-                    const filesUploaded = res.filesUploaded as PickerFileMetadata[];
-                    for (const file of filesUploaded) {
-                        await fetch("/api/files/upload", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                name: file.filename,
-                                size: file.size,
-                                mime_type: file.mimetype,
-                                folderId: folderId,
-                                userId: user.uid,
-                                filestackUrl: file.url,
-                                filestackHandle: file.handle,
-                                source: "filestack"
-                            }),
-                        });
-                    }
-                    alert("Files uploaded successfully!");
-                } catch (error) {
-                    console.error("Upload error:", error);
-                    alert("Upload failed to save metadata.");
-                }
+        setUploadTargetFolderId(folderId);
+        fileInputRef.current?.click();
+    };
+
+    const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const files = event.target.files;
+        if (!files || files.length === 0 || !user || !uploadTargetFolderId) return;
+
+        setUploading(true);
+        setUploadProgress(0);
+
+        try {
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                await uploadFileToBackblaze(file, uploadTargetFolderId);
+                setUploadProgress(Math.round(((i + 1) / files.length) * 100));
+            }
+            alert("Files uploaded successfully!");
+        } catch (error) {
+            console.error("Upload error:", error);
+            alert("Upload failed. Please try again.");
+        } finally {
+            setUploading(false);
+            setUploadProgress(0);
+            setUploadTargetFolderId(null);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
+        }
+    };
+
+    const uploadFileToBackblaze = async (file: File, folderId: string) => {
+        // Step 1: Get upload URL from our API
+        const urlResponse = await fetch("/api/files/upload-url");
+        if (!urlResponse.ok) {
+            throw new Error("Failed to get upload URL");
+        }
+        const { uploadUrl, authorizationToken } = await urlResponse.json();
+
+        // Step 2: Upload file directly to Backblaze B2
+        const uploadResponse = await fetch(uploadUrl, {
+            method: "POST",
+            headers: {
+                "Authorization": authorizationToken,
+                "X-Bz-File-Name": encodeURIComponent(file.name),
+                "Content-Type": file.type || "application/octet-stream",
+                "X-Bz-Content-Sha1": "do_not_verify"
             },
-        };
-        client.picker(pickerOptions).open();
+            body: file
+        });
+
+        if (!uploadResponse.ok) {
+            const errorText = await uploadResponse.text();
+            console.error("B2 Upload Error:", errorText);
+            throw new Error("Failed to upload to Backblaze");
+        }
+
+        const uploadResult = await uploadResponse.json();
+
+        // Step 3: Save metadata to our database
+        const saveResponse = await fetch("/api/files/upload", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                name: file.name,
+                size: file.size,
+                mime_type: file.type || "application/octet-stream",
+                folderId: folderId,
+                userId: user?.uid,
+                provider: "backblaze",
+                fileId: uploadResult.fileId,
+                fileName: uploadResult.fileName
+            }),
+        });
+
+        if (!saveResponse.ok) {
+            throw new Error("Failed to save file metadata");
+        }
     };
 
     const formatDate = (timestamp: number) => {
@@ -171,6 +223,32 @@ export default function FoldersPage() {
 
     return (
         <div className="space-y-6 pb-20">
+            {/* Hidden file input for uploads */}
+            <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                onChange={handleFileSelect}
+                className="hidden"
+                accept="image/*,application/pdf,video/*,audio/*,text/*,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar"
+            />
+
+            {/* Upload Progress Overlay */}
+            {uploading && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 w-full max-w-md shadow-2xl">
+                        <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-4">Uploading Files...</h3>
+                        <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3 mb-4">
+                            <div
+                                className="bg-gradient-to-r from-blue-600 to-purple-600 h-3 rounded-full transition-all duration-300"
+                                style={{ width: `${uploadProgress}%` }}
+                            ></div>
+                        </div>
+                        <p className="text-center text-slate-600 dark:text-slate-400">{uploadProgress}% Complete</p>
+                    </div>
+                </div>
+            )}
+
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>

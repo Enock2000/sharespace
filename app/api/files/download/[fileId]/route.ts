@@ -12,17 +12,10 @@ export async function GET(request: Request, { params }: { params: { fileId: stri
             return NextResponse.json({ error: "File not found" }, { status: 404 });
         }
 
-        if (file.provider === "backblaze") {
-            // For B2, we need to generate a signed URL using the file name
-            // Note: We stored the B2 fileId in storage_key, but getDownloadUrl uses fileName
-            const url = await backblazeService.getDownloadUrl(file.name);
-            return NextResponse.redirect(url);
-        } else if (file.storage_key && file.storage_key.startsWith("http")) {
-            // Legacy Filestack or other URL-based storage
-            return NextResponse.redirect(file.storage_key);
-        }
-
-        return NextResponse.json({ error: "Invalid file provider or storage key" }, { status: 400 });
+        // Use b2_file_name if available, otherwise fall back to the display name
+        const fileName = file.b2_file_name || file.name;
+        const url = await backblazeService.getDownloadUrl(fileName);
+        return NextResponse.redirect(url);
 
     } catch (error: any) {
         console.error("Download error:", error);

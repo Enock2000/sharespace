@@ -42,8 +42,8 @@ export interface File {
     uploaded_by: string;
     size: number;
     mime_type: string;
-    storage_key: string;
-    provider?: "filestack" | "backblaze";
+    storage_key: string; // Backblaze B2 file ID
+    b2_file_name?: string; // Backblaze B2 file name for downloads
     created_at: number;
     updated_at: number;
     current_version: string;
@@ -54,8 +54,8 @@ export interface FileVersion {
     id: string;
     file_id: string;
     version_number: number;
-    storage_key: string;
-    provider?: "filestack" | "backblaze";
+    storage_key: string; // Backblaze B2 file ID
+    b2_file_name?: string; // Backblaze B2 file name for downloads
     size: number;
     uploaded_by: string;
     uploaded_at: number;

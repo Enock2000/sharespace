@@ -6,7 +6,7 @@ import { User } from "@/types/database";
 
 export async function POST(request: Request) {
     try {
-        const { name, size, mime_type, folderId, userId, filestackUrl, filestackHandle, provider, fileId, fileName } = await request.json();
+        const { name, size, mime_type, folderId, userId, fileId, fileName } = await request.json();
 
         if (!name || !size || !userId) {
             return NextResponse.json(
@@ -15,17 +15,8 @@ export async function POST(request: Request) {
             );
         }
 
-        // Determine storage key and provider
-        let storageKey = filestackUrl;
-        let fileProvider = provider || "filestack";
-
-        if (fileProvider === "backblaze") {
-            if (!fileId || !fileName) {
-                return NextResponse.json({ error: "Missing B2 file details" }, { status: 400 });
-            }
-            storageKey = fileId; // Store B2 file ID as key
-        } else if (!filestackUrl) {
-            return NextResponse.json({ error: "Missing Filestack URL" }, { status: 400 });
+        if (!fileId || !fileName) {
+            return NextResponse.json({ error: "Missing Backblaze file details" }, { status: 400 });
         }
 
         // Get user to find tenant
@@ -34,17 +25,17 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
-        // Create DB record
+        // Create DB record with Backblaze as the only provider
         const file = await createFile(
             user.tenant_id,
-            folderId || null, // Use null instead of "root" to match query logic
+            folderId || null,
             userId,
             {
                 name,
                 size,
                 mime_type,
-                storage_key: storageKey,
-                provider: fileProvider as "filestack" | "backblaze",
+                storage_key: fileId, // Store B2 file ID as key
+                b2_file_name: fileName
             }
         );
 
@@ -55,7 +46,7 @@ export async function POST(request: Request) {
             "upload_file",
             "file",
             file.id,
-            { name, size, mime_type, provider: fileProvider }
+            { name, size, mime_type, provider: "backblaze" }
         );
 
         return NextResponse.json({
