@@ -3,18 +3,31 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useAuth } from "@/lib/auth/auth-context";
 import { Icons } from "@/components/ui/icons";
+import {
+    startResumableUpload,
+    getPendingUploads,
+    findPendingUpload,
+    resumeUpload,
+    cancelUpload,
+    UploadProgress,
+    ResumableUploadState,
+} from "@/lib/resumable-upload";
 
 interface UploadItem {
     id: string;
-    file: File;
+    file: File | null;
+    fileName: string;
     loaded: number;
     total: number;
     percent: number;
     speed: number;
     timeRemaining: number;
-    status: "queued" | "uploading" | "saving" | "complete" | "error";
+    status: "queued" | "uploading" | "saving" | "complete" | "error" | "resumable";
     errorMessage?: string;
+    resumableState?: ResumableUploadState;
 }
+
+const LARGE_FILE_THRESHOLD = 10 * 1024 * 1024; // 10MB - use chunked upload for larger files
 
 export default function B2FileUploader({
     currentFolderId,
@@ -29,7 +42,30 @@ export default function B2FileUploader({
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { user } = useAuth();
     const activeUploadsRef = useRef<Set<string>>(new Set());
-    const MAX_CONCURRENT = 3; // Allow 3 concurrent uploads
+    const MAX_CONCURRENT = 3;
+
+    // Check for pending uploads on mount
+    useEffect(() => {
+        if (user) {
+            const pending = getPendingUploads(user.uid);
+            if (pending.length > 0) {
+                const pendingItems: UploadItem[] = pending.map(state => ({
+                    id: state.id,
+                    file: null,
+                    fileName: state.fileName,
+                    loaded: state.parts.filter(p => p.uploaded).length * 10 * 1024 * 1024,
+                    total: state.fileSize,
+                    percent: Math.round((state.parts.filter(p => p.uploaded).length / state.parts.length) * 100),
+                    speed: 0,
+                    timeRemaining: 0,
+                    status: "resumable" as const,
+                    resumableState: state,
+                }));
+                setUploads(pendingItems);
+                setIsVisible(true);
+            }
+        }
+    }, [user]);
 
     const formatBytes = (bytes: number): string => {
         if (bytes === 0) return "0 B";
@@ -51,36 +87,61 @@ export default function B2FileUploader({
         return formatBytes(bytesPerSecond) + "/s";
     };
 
-    // Process upload queue
-    const processQueue = useCallback(() => {
-        const activeCount = activeUploadsRef.current.size;
-        if (activeCount >= MAX_CONCURRENT) return;
+    // Handle resumable upload progress
+    const handleResumableProgress = (progress: UploadProgress) => {
+        setUploads(prev => prev.map(u =>
+            u.id === progress.uploadId ? {
+                ...u,
+                loaded: progress.bytesUploaded,
+                total: progress.totalBytes,
+                percent: progress.percentComplete,
+                status: progress.status === "complete" ? "complete" as const :
+                    progress.status === "error" ? "error" as const : "uploading" as const,
+                errorMessage: progress.error,
+            } : u
+        ));
 
-        const queued = uploads.filter(u => u.status === "queued");
-        const slotsAvailable = MAX_CONCURRENT - activeCount;
-        const toStart = queued.slice(0, slotsAvailable);
+        if (progress.status === "complete") {
+            onUploadComplete();
+        }
+    };
 
-        toStart.forEach(item => {
-            if (!activeUploadsRef.current.has(item.id)) {
-                startUpload(item);
-            }
-        });
-    }, [uploads]);
+    // Start upload for large files (resumable)
+    const startLargeFileUpload = async (item: UploadItem) => {
+        if (!item.file || !user) return;
 
-    useEffect(() => {
-        processQueue();
-    }, [uploads, processQueue]);
+        activeUploadsRef.current.add(item.id);
+        setUploads(prev => prev.map(u =>
+            u.id === item.id ? { ...u, status: "uploading" as const } : u
+        ));
 
-    const startUpload = async (item: UploadItem) => {
+        try {
+            await startResumableUpload(
+                item.file,
+                currentFolderId,
+                user.uid,
+                handleResumableProgress
+            );
+        } catch (error: any) {
+            setUploads(prev => prev.map(u =>
+                u.id === item.id ? { ...u, status: "error" as const, errorMessage: error.message } : u
+            ));
+        } finally {
+            activeUploadsRef.current.delete(item.id);
+        }
+    };
+
+    // Start upload for small files (simple upload)
+    const startSmallFileUpload = async (item: UploadItem) => {
+        if (!item.file || !user) return;
+
         activeUploadsRef.current.add(item.id);
 
         try {
-            // Get upload URL
             const urlResponse = await fetch("/api/files/b2-upload-url");
             if (!urlResponse.ok) throw new Error("Failed to get upload URL");
             const { uploadUrl, authorizationToken } = await urlResponse.json();
 
-            // Upload to B2
             await new Promise<void>((resolve, reject) => {
                 const xhr = new XMLHttpRequest();
                 let startTime = Date.now();
@@ -131,9 +192,9 @@ export default function B2FileUploader({
                                 method: "POST",
                                 headers: { "Content-Type": "application/json" },
                                 body: JSON.stringify({
-                                    name: item.file.name,
-                                    size: item.file.size,
-                                    mime_type: item.file.type || "application/octet-stream",
+                                    name: item.file!.name,
+                                    size: item.file!.size,
+                                    mime_type: item.file!.type || "application/octet-stream",
                                     folderId: currentFolderId,
                                     userId: user?.uid,
                                     fileId: b2Response.fileId,
@@ -146,6 +207,7 @@ export default function B2FileUploader({
                             setUploads(prev => prev.map(u =>
                                 u.id === item.id ? { ...u, status: "complete" as const, percent: 100 } : u
                             ));
+                            onUploadComplete();
                             resolve();
                         } catch (error: any) {
                             setUploads(prev => prev.map(u =>
@@ -170,8 +232,8 @@ export default function B2FileUploader({
 
                 xhr.open("POST", uploadUrl);
                 xhr.setRequestHeader("Authorization", authorizationToken);
-                xhr.setRequestHeader("X-Bz-File-Name", encodeURIComponent(item.file.name));
-                xhr.setRequestHeader("Content-Type", item.file.type || "application/octet-stream");
+                xhr.setRequestHeader("X-Bz-File-Name", encodeURIComponent(item.file!.name));
+                xhr.setRequestHeader("Content-Type", item.file!.type || "application/octet-stream");
                 xhr.setRequestHeader("X-Bz-Content-Sha1", "do_not_verify");
 
                 setUploads(prev => prev.map(u =>
@@ -184,16 +246,32 @@ export default function B2FileUploader({
             console.error("Upload error:", error);
         } finally {
             activeUploadsRef.current.delete(item.id);
-
-            // Check if all done
-            setTimeout(() => {
-                const allDone = uploads.every(u => u.status === "complete" || u.status === "error");
-                if (allDone && uploads.length > 0) {
-                    onUploadComplete();
-                }
-            }, 100);
         }
     };
+
+    // Process upload queue
+    const processQueue = useCallback(() => {
+        const activeCount = activeUploadsRef.current.size;
+        if (activeCount >= MAX_CONCURRENT) return;
+
+        const queued = uploads.filter(u => u.status === "queued" && u.file);
+        const slotsAvailable = MAX_CONCURRENT - activeCount;
+        const toStart = queued.slice(0, slotsAvailable);
+
+        toStart.forEach(item => {
+            if (!activeUploadsRef.current.has(item.id) && item.file) {
+                if (item.file.size >= LARGE_FILE_THRESHOLD) {
+                    startLargeFileUpload(item);
+                } else {
+                    startSmallFileUpload(item);
+                }
+            }
+        });
+    }, [uploads]);
+
+    useEffect(() => {
+        processQueue();
+    }, [uploads, processQueue]);
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
@@ -202,6 +280,7 @@ export default function B2FileUploader({
         const newUploads: UploadItem[] = Array.from(files).map(file => ({
             id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             file,
+            fileName: file.name,
             loaded: 0,
             total: file.size,
             percent: 0,
@@ -219,6 +298,39 @@ export default function B2FileUploader({
         }
     };
 
+    const handleResumeUpload = async (item: UploadItem) => {
+        if (!item.resumableState) return;
+
+        // User needs to re-select the file to resume
+        const input = document.createElement("input");
+        input.type = "file";
+        input.onchange = async (e) => {
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (file && file.name === item.fileName && file.size === item.total) {
+                setUploads(prev => prev.map(u =>
+                    u.id === item.id ? { ...u, file, status: "uploading" as const } : u
+                ));
+                try {
+                    await resumeUpload(file, item.resumableState!, handleResumableProgress);
+                } catch (error: any) {
+                    setUploads(prev => prev.map(u =>
+                        u.id === item.id ? { ...u, status: "error" as const, errorMessage: error.message } : u
+                    ));
+                }
+            } else {
+                alert("Please select the same file to resume upload");
+            }
+        };
+        input.click();
+    };
+
+    const handleCancelUpload = async (item: UploadItem) => {
+        if (item.resumableState) {
+            await cancelUpload(item.id);
+        }
+        setUploads(prev => prev.filter(u => u.id !== item.id));
+    };
+
     const clearCompleted = () => {
         setUploads(prev => prev.filter(u => u.status !== "complete" && u.status !== "error"));
         if (uploads.filter(u => u.status !== "complete" && u.status !== "error").length === 0) {
@@ -227,6 +339,7 @@ export default function B2FileUploader({
     };
 
     const activeUploads = uploads.filter(u => u.status === "uploading" || u.status === "queued" || u.status === "saving");
+    const resumableUploads = uploads.filter(u => u.status === "resumable");
     const completedUploads = uploads.filter(u => u.status === "complete");
     const errorUploads = uploads.filter(u => u.status === "error");
     const totalProgress = uploads.length > 0
@@ -263,14 +376,17 @@ export default function B2FileUploader({
                     <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-5 py-4 rounded-2xl shadow-2xl flex items-center gap-4 hover:scale-105 transition-transform border-2 border-white/30">
                         <div className="relative">
                             <Icons.UploadCloud className="w-8 h-8" />
-                            {activeUploads.length > 0 && (
+                            {(activeUploads.length > 0 || resumableUploads.length > 0) && (
                                 <div className="absolute -top-2 -right-2 w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center animate-pulse">
-                                    <span className="text-xs font-bold text-black">{activeUploads.length}</span>
+                                    <span className="text-xs font-bold text-black">{activeUploads.length + resumableUploads.length}</span>
                                 </div>
                             )}
                         </div>
                         <div className="text-sm">
-                            <div className="font-bold text-base">{activeUploads.length > 0 ? `${activeUploads.length} Uploading` : "Uploads Complete"}</div>
+                            <div className="font-bold text-base">
+                                {resumableUploads.length > 0 ? `${resumableUploads.length} Pending Resume` :
+                                    activeUploads.length > 0 ? `${activeUploads.length} Uploading` : "Uploads Complete"}
+                            </div>
                             <div className="text-white/80 text-sm">{totalProgress}% • Click to View</div>
                         </div>
                         <div className="w-14 h-14 relative">
@@ -297,9 +413,10 @@ export default function B2FileUploader({
                         <div className="flex items-center gap-2">
                             <Icons.UploadCloud className="w-5 h-5" />
                             <span className="font-semibold">
-                                {activeUploads.length > 0
-                                    ? `Uploading ${activeUploads.length} file${activeUploads.length > 1 ? 's' : ''}`
-                                    : `${completedUploads.length} completed`
+                                {resumableUploads.length > 0 ? `${resumableUploads.length} Pending Resume` :
+                                    activeUploads.length > 0
+                                        ? `Uploading ${activeUploads.length} file${activeUploads.length > 1 ? 's' : ''}`
+                                        : `${completedUploads.length} completed`
                                 }
                             </span>
                         </div>
@@ -346,7 +463,9 @@ export default function B2FileUploader({
                                     ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
                                     : upload.status === "error"
                                         ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
-                                        : "bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700"
+                                        : upload.status === "resumable"
+                                            ? "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800"
+                                            : "bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700"
                                     }`}
                             >
                                 <div className="flex items-center gap-2 mb-2">
@@ -354,18 +473,37 @@ export default function B2FileUploader({
                                         <Icons.CheckCircle className="w-4 h-4 text-green-600" />
                                     ) : upload.status === "error" ? (
                                         <Icons.AlertTriangle className="w-4 h-4 text-red-600" />
+                                    ) : upload.status === "resumable" ? (
+                                        <Icons.RefreshCw className="w-4 h-4 text-yellow-600" />
                                     ) : upload.status === "uploading" || upload.status === "saving" ? (
                                         <div className="w-4 h-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
                                     ) : (
                                         <div className="w-4 h-4 rounded-full bg-slate-300" />
                                     )}
                                     <span className="text-sm font-medium text-slate-900 dark:text-white truncate flex-1">
-                                        {upload.file.name}
+                                        {upload.fileName}
                                     </span>
                                     <span className="text-xs text-slate-500">
-                                        {formatBytes(upload.file.size)}
+                                        {formatBytes(upload.total)}
                                     </span>
                                 </div>
+
+                                {upload.status === "resumable" && (
+                                    <div className="flex gap-2 mt-2">
+                                        <button
+                                            onClick={() => handleResumeUpload(upload)}
+                                            className="flex-1 py-1.5 px-3 bg-yellow-500 text-white text-sm rounded hover:bg-yellow-600 transition-colors"
+                                        >
+                                            Resume Upload
+                                        </button>
+                                        <button
+                                            onClick={() => handleCancelUpload(upload)}
+                                            className="py-1.5 px-3 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                )}
 
                                 {(upload.status === "uploading" || upload.status === "saving") && (
                                     <>
@@ -391,7 +529,7 @@ export default function B2FileUploader({
                     </div>
 
                     {/* Footer */}
-                    {(completedUploads.length > 0 || errorUploads.length > 0) && activeUploads.length === 0 && (
+                    {(completedUploads.length > 0 || errorUploads.length > 0) && activeUploads.length === 0 && resumableUploads.length === 0 && (
                         <div className="p-3 border-t border-slate-200 dark:border-slate-700">
                             <button
                                 onClick={clearCompleted}
@@ -402,8 +540,7 @@ export default function B2FileUploader({
                         </div>
                     )}
                 </div>
-            )
-            }
+            )}
         </>
     );
 }

@@ -12,6 +12,7 @@ class BackblazeService {
     private b2: any;
     private authorized: boolean = false;
     private downloadUrl: string = "";
+    private recommendedPartSize: number = 10 * 1024 * 1024; // Default 10MB
 
     constructor() {
         this.b2 = new B2({
@@ -24,6 +25,7 @@ class BackblazeService {
         if (!this.authorized) {
             const response = await this.b2.authorize();
             this.downloadUrl = response.data.downloadUrl;
+            this.recommendedPartSize = response.data.recommendedPartSize || 10 * 1024 * 1024;
             this.authorized = true;
         }
     }
@@ -50,20 +52,61 @@ class BackblazeService {
         const response = await this.b2.getDownloadAuthorization({
             bucketId: CONFIG.bucketId,
             fileNamePrefix: fileName,
-            validDurationInSeconds: 3600, // 1 hour
+            validDurationInSeconds: 3600,
         });
 
         const { authorizationToken } = response.data;
-        // Use the download URL from authorize
-        // Properly encode the filename for URL
         const encodedFileName = encodeURIComponent(fileName);
         return `${this.downloadUrl}/file/${CONFIG.bucketName}/${encodedFileName}?Authorization=${authorizationToken}`;
     }
 
-    // Get a direct download URL without authorization (for private buckets, this won't work)
-    getPublicUrl(fileName: string) {
-        const encodedFileName = encodeURIComponent(fileName);
-        return `https://f005.backblazeb2.com/file/${CONFIG.bucketName}/${encodedFileName}`;
+    // ============ Large File API Methods ============
+
+    async startLargeFile(fileName: string, contentType: string) {
+        await this.authorize();
+        const response = await this.b2.startLargeFile({
+            bucketId: CONFIG.bucketId,
+            fileName: fileName,
+            contentType: contentType || "application/octet-stream",
+        });
+        return response.data; // Returns { fileId, fileName, ... }
+    }
+
+    async getUploadPartUrl(fileId: string) {
+        await this.authorize();
+        const response = await this.b2.getUploadPartUrl({
+            fileId: fileId,
+        });
+        return response.data; // Returns { uploadUrl, authorizationToken }
+    }
+
+    async finishLargeFile(fileId: string, partSha1Array: string[]) {
+        await this.authorize();
+        const response = await this.b2.finishLargeFile({
+            fileId: fileId,
+            partSha1Array: partSha1Array,
+        });
+        return response.data;
+    }
+
+    async cancelLargeFile(fileId: string) {
+        await this.authorize();
+        const response = await this.b2.cancelLargeFile({
+            fileId: fileId,
+        });
+        return response.data;
+    }
+
+    async listUnfinishedLargeFiles() {
+        await this.authorize();
+        const response = await this.b2.listUnfinishedLargeFiles({
+            bucketId: CONFIG.bucketId,
+        });
+        return response.data;
+    }
+
+    getRecommendedPartSize() {
+        return this.recommendedPartSize;
     }
 
     getBucketId() {
