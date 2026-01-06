@@ -11,6 +11,7 @@ const CONFIG = {
 class BackblazeService {
     private b2: any;
     private authorized: boolean = false;
+    private downloadUrl: string = "";
 
     constructor() {
         this.b2 = new B2({
@@ -21,7 +22,8 @@ class BackblazeService {
 
     async authorize() {
         if (!this.authorized) {
-            await this.b2.authorize();
+            const response = await this.b2.authorize();
+            this.downloadUrl = response.data.downloadUrl;
             this.authorized = true;
         }
     }
@@ -51,14 +53,25 @@ class BackblazeService {
             validDurationInSeconds: 3600, // 1 hour
         });
 
-        const { authorizationToken, downloadUrl } = response.data;
-        // Construct the full URL
-        // downloadUrl is usually like https://f005.backblazeb2.com
-        return `${downloadUrl}/file/${CONFIG.bucketName}/${fileName}?Authorization=${authorizationToken}`;
+        const { authorizationToken } = response.data;
+        // Use the download URL from authorize
+        // Properly encode the filename for URL
+        const encodedFileName = encodeURIComponent(fileName);
+        return `${this.downloadUrl}/file/${CONFIG.bucketName}/${encodedFileName}?Authorization=${authorizationToken}`;
+    }
+
+    // Get a direct download URL without authorization (for private buckets, this won't work)
+    getPublicUrl(fileName: string) {
+        const encodedFileName = encodeURIComponent(fileName);
+        return `https://f005.backblazeb2.com/file/${CONFIG.bucketName}/${encodedFileName}`;
     }
 
     getBucketId() {
         return CONFIG.bucketId;
+    }
+
+    getBucketName() {
+        return CONFIG.bucketName;
     }
 }
 
