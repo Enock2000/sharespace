@@ -259,8 +259,15 @@ export default function FilesPage() {
                             className="p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-500 cursor-pointer transition-all group relative shadow-sm hover:shadow-md"
                         >
                             <div className="flex items-center gap-3 mb-2">
-                                <div className={`p-2 rounded-lg ${file.mime_type.includes("image") ? "bg-purple-50 text-purple-600" : "bg-slate-50 text-slate-600"}`}>
-                                    {file.mime_type.includes("image") ? <Icons.Image className="w-6 h-6" /> : <Icons.File className="w-6 h-6" />}
+                                <div className={`p-2 rounded-lg ${file.mime_type.startsWith("image/") ? "bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400" :
+                                        file.mime_type.startsWith("video/") ? "bg-pink-50 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400" :
+                                            file.mime_type.startsWith("audio/") ? "bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400" :
+                                                "bg-slate-50 text-slate-600 dark:bg-slate-700 dark:text-slate-400"
+                                    }`}>
+                                    {file.mime_type.startsWith("image/") ? <Icons.Image className="w-6 h-6" /> :
+                                        file.mime_type.startsWith("video/") ? <Icons.Video className="w-6 h-6" /> :
+                                            file.mime_type.startsWith("audio/") ? <span className="text-xl">🎵</span> :
+                                                <Icons.File className="w-6 h-6" />}
                                 </div>
                                 <span className="font-medium truncate flex-1">{file.name}</span>
                             </div>
@@ -376,13 +383,37 @@ export default function FilesPage() {
                         <div className="max-w-full max-h-full flex items-center justify-center">
                             {viewingFile.mime_type.startsWith("image/") ? (
                                 <img
-                                    src={viewingFile.storage_key}
+                                    src={`/api/files/download/${viewingFile.id}`}
                                     alt={viewingFile.name}
                                     className="max-w-full max-h-[80vh] object-contain shadow-2xl rounded-lg"
                                 />
+                            ) : viewingFile.mime_type.startsWith("video/") ? (
+                                <video
+                                    src={`/api/files/download/${viewingFile.id}`}
+                                    controls
+                                    autoPlay
+                                    className="max-w-full max-h-[80vh] shadow-2xl rounded-lg bg-black"
+                                >
+                                    Your browser does not support video playback.
+                                </video>
+                            ) : viewingFile.mime_type.startsWith("audio/") ? (
+                                <div className="bg-gradient-to-br from-purple-900 to-blue-900 p-12 rounded-2xl shadow-2xl text-center">
+                                    <div className="w-32 h-32 mx-auto mb-6 bg-white/10 rounded-full flex items-center justify-center">
+                                        <span className="text-6xl">🎵</span>
+                                    </div>
+                                    <h3 className="text-white text-xl font-semibold mb-6">{viewingFile.name}</h3>
+                                    <audio
+                                        src={`/api/files/download/${viewingFile.id}`}
+                                        controls
+                                        autoPlay
+                                        className="w-80"
+                                    >
+                                        Your browser does not support audio playback.
+                                    </audio>
+                                </div>
                             ) : viewingFile.mime_type === "application/pdf" ? (
                                 <iframe
-                                    src={viewingFile.storage_key}
+                                    src={`/api/files/download/${viewingFile.id}`}
                                     className="w-[80vw] h-[80vh] bg-white rounded-lg shadow-2xl"
                                 />
                             ) : (
@@ -398,6 +429,7 @@ export default function FilesPage() {
                                 </div>
                             )}
                         </div>
+
 
                         <button
                             onClick={(e) => { e.stopPropagation(); handleNextFile(); }}

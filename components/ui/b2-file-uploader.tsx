@@ -1,17 +1,18 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useAuth } from "@/lib/auth/auth-context";
 import { Icons } from "@/components/ui/icons";
 
-interface UploadProgress {
-    fileName: string;
+interface UploadItem {
+    id: string;
+    file: File;
     loaded: number;
     total: number;
     percent: number;
     speed: number;
     timeRemaining: number;
-    status: "uploading" | "saving" | "complete" | "error";
+    status: "queued" | "uploading" | "saving" | "complete" | "error";
     errorMessage?: string;
 }
 
@@ -22,12 +23,13 @@ export default function B2FileUploader({
     currentFolderId: string | null,
     onUploadComplete: () => void
 }) {
-    const [uploading, setUploading] = useState(false);
-    const [progress, setProgress] = useState<UploadProgress | null>(null);
-    const [totalFiles, setTotalFiles] = useState(0);
-    const [currentFileIndex, setCurrentFileIndex] = useState(0);
+    const [uploads, setUploads] = useState<UploadItem[]>([]);
+    const [isMinimized, setIsMinimized] = useState(false);
+    const [isVisible, setIsVisible] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { user } = useAuth();
+    const activeUploadsRef = useRef<Set<string>>(new Set());
+    const MAX_CONCURRENT = 3; // Allow 3 concurrent uploads
 
     const formatBytes = (bytes: number): string => {
         if (bytes === 0) return "0 B";
@@ -38,29 +40,48 @@ export default function B2FileUploader({
     };
 
     const formatTime = (seconds: number): string => {
-        if (!isFinite(seconds) || seconds < 0) return "Calculating...";
+        if (!isFinite(seconds) || seconds < 0) return "...";
         if (seconds < 60) return `${Math.round(seconds)}s`;
         if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${Math.round(seconds % 60)}s`;
         return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
     };
 
     const formatSpeed = (bytesPerSecond: number): string => {
-        if (!isFinite(bytesPerSecond) || bytesPerSecond <= 0) return "Calculating...";
+        if (!isFinite(bytesPerSecond) || bytesPerSecond <= 0) return "...";
         return formatBytes(bytesPerSecond) + "/s";
     };
 
-    // Direct upload to Backblaze B2 (bypasses Vercel limits)
-    const uploadFileDirectToB2 = useCallback(async (file: File): Promise<void> => {
-        return new Promise(async (resolve, reject) => {
-            try {
-                // 1. Get upload URL from our API
-                const urlResponse = await fetch("/api/files/b2-upload-url");
-                if (!urlResponse.ok) {
-                    throw new Error("Failed to get upload URL");
-                }
-                const { uploadUrl, authorizationToken } = await urlResponse.json();
+    // Process upload queue
+    const processQueue = useCallback(() => {
+        const activeCount = activeUploadsRef.current.size;
+        if (activeCount >= MAX_CONCURRENT) return;
 
-                // 2. Upload directly to B2 using XHR for progress
+        const queued = uploads.filter(u => u.status === "queued");
+        const slotsAvailable = MAX_CONCURRENT - activeCount;
+        const toStart = queued.slice(0, slotsAvailable);
+
+        toStart.forEach(item => {
+            if (!activeUploadsRef.current.has(item.id)) {
+                startUpload(item);
+            }
+        });
+    }, [uploads]);
+
+    useEffect(() => {
+        processQueue();
+    }, [uploads, processQueue]);
+
+    const startUpload = async (item: UploadItem) => {
+        activeUploadsRef.current.add(item.id);
+
+        try {
+            // Get upload URL
+            const urlResponse = await fetch("/api/files/b2-upload-url");
+            if (!urlResponse.ok) throw new Error("Failed to get upload URL");
+            const { uploadUrl, authorizationToken } = await urlResponse.json();
+
+            // Upload to B2
+            await new Promise<void>((resolve, reject) => {
                 const xhr = new XMLHttpRequest();
                 let startTime = Date.now();
                 let lastLoaded = 0;
@@ -80,15 +101,17 @@ export default function B2FileUploader({
                         const remaining = event.total - event.loaded;
                         const timeRemaining = speed > 0 ? remaining / speed : 0;
 
-                        setProgress({
-                            fileName: file.name,
-                            loaded: event.loaded,
-                            total: event.total,
-                            percent: Math.round((event.loaded / event.total) * 100),
-                            speed: speed,
-                            timeRemaining: timeRemaining,
-                            status: "uploading"
-                        });
+                        setUploads(prev => prev.map(u =>
+                            u.id === item.id ? {
+                                ...u,
+                                loaded: event.loaded,
+                                total: event.total,
+                                percent: Math.round((event.loaded / event.total) * 100),
+                                speed,
+                                timeRemaining,
+                                status: "uploading" as const
+                            } : u
+                        ));
 
                         lastLoaded = event.loaded;
                         lastTime = currentTime;
@@ -98,18 +121,19 @@ export default function B2FileUploader({
                 xhr.addEventListener("load", async () => {
                     if (xhr.status >= 200 && xhr.status < 300) {
                         try {
-                            setProgress(prev => prev ? { ...prev, status: "saving" } : null);
+                            setUploads(prev => prev.map(u =>
+                                u.id === item.id ? { ...u, status: "saving" as const } : u
+                            ));
 
                             const b2Response = JSON.parse(xhr.responseText);
 
-                            // 3. Save metadata to our database
                             const saveResponse = await fetch("/api/files/save-metadata", {
                                 method: "POST",
                                 headers: { "Content-Type": "application/json" },
                                 body: JSON.stringify({
-                                    name: file.name,
-                                    size: file.size,
-                                    mime_type: file.type || "application/octet-stream",
+                                    name: item.file.name,
+                                    size: item.file.size,
+                                    mime_type: item.file.type || "application/octet-stream",
                                     folderId: currentFolderId,
                                     userId: user?.uid,
                                     fileId: b2Response.fileId,
@@ -117,99 +141,105 @@ export default function B2FileUploader({
                                 }),
                             });
 
-                            if (!saveResponse.ok) {
-                                throw new Error("Failed to save file metadata");
-                            }
+                            if (!saveResponse.ok) throw new Error("Failed to save metadata");
 
-                            setProgress(prev => prev ? { ...prev, status: "complete" } : null);
+                            setUploads(prev => prev.map(u =>
+                                u.id === item.id ? { ...u, status: "complete" as const, percent: 100 } : u
+                            ));
                             resolve();
                         } catch (error: any) {
-                            setProgress(prev => prev ? { ...prev, status: "error", errorMessage: error.message } : null);
+                            setUploads(prev => prev.map(u =>
+                                u.id === item.id ? { ...u, status: "error" as const, errorMessage: error.message } : u
+                            ));
                             reject(error);
                         }
                     } else {
-                        const errorMessage = `Upload failed: ${xhr.status} ${xhr.statusText}`;
-                        setProgress(prev => prev ? { ...prev, status: "error", errorMessage } : null);
-                        reject(new Error(errorMessage));
+                        setUploads(prev => prev.map(u =>
+                            u.id === item.id ? { ...u, status: "error" as const, errorMessage: `HTTP ${xhr.status}` } : u
+                        ));
+                        reject(new Error(`HTTP ${xhr.status}`));
                     }
                 });
 
                 xhr.addEventListener("error", () => {
-                    setProgress(prev => prev ? { ...prev, status: "error", errorMessage: "Network error during upload" } : null);
-                    reject(new Error("Network error during upload"));
+                    setUploads(prev => prev.map(u =>
+                        u.id === item.id ? { ...u, status: "error" as const, errorMessage: "Network error" } : u
+                    ));
+                    reject(new Error("Network error"));
                 });
 
                 xhr.open("POST", uploadUrl);
                 xhr.setRequestHeader("Authorization", authorizationToken);
-                xhr.setRequestHeader("X-Bz-File-Name", encodeURIComponent(file.name));
-                xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+                xhr.setRequestHeader("X-Bz-File-Name", encodeURIComponent(item.file.name));
+                xhr.setRequestHeader("Content-Type", item.file.type || "application/octet-stream");
                 xhr.setRequestHeader("X-Bz-Content-Sha1", "do_not_verify");
-                xhr.send(file);
 
-                setProgress({
-                    fileName: file.name,
-                    loaded: 0,
-                    total: file.size,
-                    percent: 0,
-                    speed: 0,
-                    timeRemaining: 0,
-                    status: "uploading"
-                });
-            } catch (error: any) {
-                setProgress(prev => prev ? { ...prev, status: "error", errorMessage: error.message } : null);
-                reject(error);
-            }
-        });
-    }, [user, currentFolderId]);
+                setUploads(prev => prev.map(u =>
+                    u.id === item.id ? { ...u, status: "uploading" as const } : u
+                ));
 
-    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+                xhr.send(item.file);
+            });
+        } catch (error) {
+            console.error("Upload error:", error);
+        } finally {
+            activeUploadsRef.current.delete(item.id);
+
+            // Check if all done
+            setTimeout(() => {
+                const allDone = uploads.every(u => u.status === "complete" || u.status === "error");
+                if (allDone && uploads.length > 0) {
+                    onUploadComplete();
+                }
+            }, 100);
+        }
+    };
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (!files || files.length === 0 || !user) return;
 
-        setUploading(true);
-        setTotalFiles(files.length);
-        setCurrentFileIndex(0);
+        const newUploads: UploadItem[] = Array.from(files).map(file => ({
+            id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            file,
+            loaded: 0,
+            total: file.size,
+            percent: 0,
+            speed: 0,
+            timeRemaining: 0,
+            status: "queued" as const
+        }));
 
-        let successCount = 0;
-        let failCount = 0;
-
-        for (let i = 0; i < files.length; i++) {
-            setCurrentFileIndex(i + 1);
-            try {
-                await uploadFileDirectToB2(files[i]);
-                successCount++;
-            } catch (error) {
-                console.error("Upload failed:", error);
-                failCount++;
-            }
-        }
-
-        setUploading(false);
-        setProgress(null);
-        setTotalFiles(0);
-        setCurrentFileIndex(0);
+        setUploads(prev => [...prev, ...newUploads]);
+        setIsVisible(true);
+        setIsMinimized(false);
 
         if (fileInputRef.current) {
             fileInputRef.current.value = "";
         }
+    };
 
-        if (successCount > 0) {
-            onUploadComplete();
-        }
-
-        if (failCount > 0) {
-            alert(`${failCount} file(s) failed to upload. ${successCount} succeeded.`);
+    const clearCompleted = () => {
+        setUploads(prev => prev.filter(u => u.status !== "complete" && u.status !== "error"));
+        if (uploads.filter(u => u.status !== "complete" && u.status !== "error").length === 0) {
+            setIsVisible(false);
         }
     };
 
+    const activeUploads = uploads.filter(u => u.status === "uploading" || u.status === "queued" || u.status === "saving");
+    const completedUploads = uploads.filter(u => u.status === "complete");
+    const errorUploads = uploads.filter(u => u.status === "error");
+    const totalProgress = uploads.length > 0
+        ? Math.round(uploads.reduce((acc, u) => acc + u.percent, 0) / uploads.length)
+        : 0;
+
     return (
-        <div className="relative">
+        <>
             <input
                 type="file"
                 ref={fileInputRef}
                 onChange={handleFileSelect}
                 className="hidden"
-                disabled={uploading}
                 multiple
                 accept="*/*"
             />
@@ -217,102 +247,160 @@ export default function B2FileUploader({
             {/* Upload Button */}
             <button
                 onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-lg transition-all shadow-md hover:shadow-lg disabled:opacity-50"
+                className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-lg transition-all shadow-md hover:shadow-lg"
             >
-                {uploading ? (
-                    <>
-                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                        <span>Uploading {currentFileIndex}/{totalFiles}</span>
-                    </>
-                ) : (
-                    <>
-                        <Icons.UploadCloud className="w-5 h-5" />
-                        <span>Upload Files</span>
-                    </>
-                )}
+                <Icons.UploadCloud className="w-5 h-5" />
+                <span>Upload Files</span>
             </button>
 
-            {/* Progress Modal */}
-            {uploading && progress && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-lg mx-4 shadow-2xl">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                                <Icons.UploadCloud className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <h3 className="font-semibold text-slate-900 dark:text-white">
-                                    Uploading File {currentFileIndex} of {totalFiles}
-                                </h3>
-                                <p className="text-sm text-slate-500 dark:text-slate-400 truncate">
-                                    {progress.fileName}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Progress Bar */}
-                        <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3 mb-4 overflow-hidden">
-                            <div
-                                className={`h-full rounded-full transition-all duration-300 ${progress.status === "error"
-                                        ? "bg-red-500"
-                                        : "bg-gradient-to-r from-blue-600 to-purple-600"
-                                    }`}
-                                style={{ width: `${progress.percent}%` }}
-                            />
-                        </div>
-
-                        {/* Stats Grid */}
-                        <div className="grid grid-cols-2 gap-4 mb-4">
-                            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-3">
-                                <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Progress</p>
-                                <p className="font-semibold text-slate-900 dark:text-white text-sm">
-                                    {formatBytes(progress.loaded)} / {formatBytes(progress.total)}
-                                </p>
-                            </div>
-                            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-3">
-                                <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Percentage</p>
-                                <p className="font-semibold text-slate-900 dark:text-white text-sm">
-                                    {progress.percent}%
-                                </p>
-                            </div>
-                            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-3">
-                                <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Speed</p>
-                                <p className="font-semibold text-blue-600 dark:text-blue-400 text-sm">
-                                    {formatSpeed(progress.speed)}
-                                </p>
-                            </div>
-                            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-3">
-                                <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Time Remaining</p>
-                                <p className="font-semibold text-purple-600 dark:text-purple-400 text-sm">
-                                    {formatTime(progress.timeRemaining)}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Status */}
-                        <div className="flex items-center justify-center gap-2 text-sm">
-                            {progress.status === "error" ? (
-                                <>
-                                    <div className="h-2 w-2 rounded-full bg-red-500"></div>
-                                    <span className="text-red-600 dark:text-red-400">
-                                        Error: {progress.errorMessage || "Upload failed"}
-                                    </span>
-                                </>
-                            ) : (
-                                <>
-                                    <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
-                                    <span className="text-slate-600 dark:text-slate-400">
-                                        {progress.status === "uploading" && "Uploading to cloud storage..."}
-                                        {progress.status === "saving" && "Saving file metadata..."}
-                                        {progress.status === "complete" && "Complete!"}
-                                    </span>
-                                </>
+            {/* Minimized Floating Button */}
+            {isVisible && isMinimized && (
+                <div
+                    onClick={() => setIsMinimized(false)}
+                    className="fixed bottom-6 right-6 z-50 cursor-pointer"
+                >
+                    <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-3 rounded-full shadow-2xl flex items-center gap-3 hover:scale-105 transition-transform">
+                        <div className="relative">
+                            <Icons.UploadCloud className="w-6 h-6" />
+                            {activeUploads.length > 0 && (
+                                <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center">
+                                    <span className="text-xs font-bold text-black">{activeUploads.length}</span>
+                                </div>
                             )}
+                        </div>
+                        <div className="text-sm">
+                            <div className="font-semibold">{activeUploads.length} uploading</div>
+                            <div className="text-white/70 text-xs">{totalProgress}% complete</div>
+                        </div>
+                        <div className="w-12 h-12 relative">
+                            <svg className="w-12 h-12 transform -rotate-90">
+                                <circle cx="24" cy="24" r="20" stroke="rgba(255,255,255,0.2)" strokeWidth="4" fill="none" />
+                                <circle
+                                    cx="24" cy="24" r="20"
+                                    stroke="white" strokeWidth="4" fill="none"
+                                    strokeDasharray={`${totalProgress * 1.256} 125.6`}
+                                    className="transition-all duration-300"
+                                />
+                            </svg>
                         </div>
                     </div>
                 </div>
             )}
-        </div>
+
+            {/* Full Upload Modal */}
+            {isVisible && !isMinimized && (
+                <div className="fixed bottom-6 right-6 z-50 w-96 max-h-[70vh] bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden">
+                    {/* Header */}
+                    <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+                        <div className="flex items-center gap-2">
+                            <Icons.UploadCloud className="w-5 h-5" />
+                            <span className="font-semibold">
+                                {activeUploads.length > 0
+                                    ? `Uploading ${activeUploads.length} file${activeUploads.length > 1 ? 's' : ''}`
+                                    : `${completedUploads.length} completed`
+                                }
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setIsMinimized(true)}
+                                className="p-1 hover:bg-white/20 rounded transition-colors"
+                                title="Hide to background"
+                            >
+                                <span className="text-lg">−</span>
+                            </button>
+                            <button
+                                onClick={() => { setIsVisible(false); clearCompleted(); }}
+                                className="p-1 hover:bg-white/20 rounded transition-colors"
+                                title="Close"
+                            >
+                                <span className="text-lg">×</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Overall Progress */}
+                    {activeUploads.length > 0 && (
+                        <div className="px-4 py-2 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
+                            <div className="flex justify-between text-sm text-slate-600 dark:text-slate-400 mb-1">
+                                <span>Overall Progress</span>
+                                <span>{totalProgress}%</span>
+                            </div>
+                            <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
+                                <div
+                                    className="bg-gradient-to-r from-blue-600 to-purple-600 h-full rounded-full transition-all duration-300"
+                                    style={{ width: `${totalProgress}%` }}
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Upload List */}
+                    <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                        {uploads.map(upload => (
+                            <div
+                                key={upload.id}
+                                className={`p-3 rounded-lg border ${upload.status === "complete"
+                                        ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
+                                        : upload.status === "error"
+                                            ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
+                                            : "bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700"
+                                    }`}
+                            >
+                                <div className="flex items-center gap-2 mb-2">
+                                    {upload.status === "complete" ? (
+                                        <Icons.CheckCircle className="w-4 h-4 text-green-600" />
+                                    ) : upload.status === "error" ? (
+                                        <Icons.AlertTriangle className="w-4 h-4 text-red-600" />
+                                    ) : upload.status === "uploading" || upload.status === "saving" ? (
+                                        <div className="w-4 h-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+                                    ) : (
+                                        <div className="w-4 h-4 rounded-full bg-slate-300" />
+                                    )}
+                                    <span className="text-sm font-medium text-slate-900 dark:text-white truncate flex-1">
+                                        {upload.file.name}
+                                    </span>
+                                    <span className="text-xs text-slate-500">
+                                        {formatBytes(upload.file.size)}
+                                    </span>
+                                </div>
+
+                                {(upload.status === "uploading" || upload.status === "saving") && (
+                                    <>
+                                        <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 mb-1">
+                                            <div
+                                                className="bg-blue-600 h-full rounded-full transition-all duration-300"
+                                                style={{ width: `${upload.percent}%` }}
+                                            />
+                                        </div>
+                                        <div className="flex justify-between text-xs text-slate-500">
+                                            <span>{formatSpeed(upload.speed)}</span>
+                                            <span>{upload.percent}%</span>
+                                            <span>{formatTime(upload.timeRemaining)}</span>
+                                        </div>
+                                    </>
+                                )}
+
+                                {upload.status === "error" && (
+                                    <p className="text-xs text-red-600">{upload.errorMessage}</p>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Footer */}
+                    {(completedUploads.length > 0 || errorUploads.length > 0) && activeUploads.length === 0 && (
+                        <div className="p-3 border-t border-slate-200 dark:border-slate-700">
+                            <button
+                                onClick={clearCompleted}
+                                className="w-full py-2 text-sm text-slate-600 dark:text-slate-400 hover:text-blue-600 transition-colors"
+                            >
+                                Clear all
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
+        </>
     );
 }
