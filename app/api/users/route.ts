@@ -16,14 +16,19 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
-        // In a real DB we'd query by tenant_id
-        // For MVP/Realtime DB without index, we might need to fetch all users and filter
-        // Or maintain a list of user IDs in the tenant object
+        // Fetch all users and filter by tenant_id
+        // This is more reliable than db.query which requires Firebase indexes
+        const usersMap = await db.get<Record<string, User>>(`users`) || {};
+        const tenantUsers = Object.values(usersMap)
+            .filter(u => u.tenant_id === requester.tenant_id)
+            .sort((a, b) => {
+                // Sort by name
+                const nameA = `${a.first_name} ${a.last_name}`.toLowerCase();
+                const nameB = `${b.first_name} ${b.last_name}`.toLowerCase();
+                return nameA.localeCompare(nameB);
+            });
 
-        // Efficient way for Realtime DB:
-        const users = await db.query<User>("users", "tenant_id", requester.tenant_id);
-
-        return NextResponse.json({ users });
+        return NextResponse.json({ users: tenantUsers });
     } catch (error: any) {
         console.error("List users error:", error);
         return NextResponse.json(
@@ -32,3 +37,4 @@ export async function GET(request: Request) {
         );
     }
 }
+
