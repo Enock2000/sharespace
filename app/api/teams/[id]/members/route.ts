@@ -26,7 +26,8 @@ export async function GET(
             return NextResponse.json({ error: "Team not found" }, { status: 404 });
         }
 
-        // Get all members
+        // Get all members and filter in memory
+        // This avoids any dependence on DB indexes
         const membersMap = await db.get<Record<string, TeamMember>>(`team_members`) || {};
         const teamMembers = Object.values(membersMap)
             .filter(m => m.team_id === params.id);

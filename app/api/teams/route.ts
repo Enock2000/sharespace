@@ -18,16 +18,21 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
+        // Fetch all teams and filter by tenant_id
+        // This ensures we don't rely on any database indexes
         const teamsMap = await db.get<Record<string, Team>>(`teams`) || {};
         const tenantTeams = Object.values(teamsMap)
             .filter(t => t.tenant_id === user.tenant_id)
             .sort((a, b) => a.name.localeCompare(b.name));
 
         // Get member counts for each team
+        // We fetch all members and count in memory to avoid index reliance
         const membersMap = await db.get<Record<string, TeamMember>>(`team_members`) || {};
+        const allMembers = Object.values(membersMap);
+
         const teamsWithCounts = tenantTeams.map(team => ({
             ...team,
-            member_count: Object.values(membersMap).filter(m => m.team_id === team.id).length
+            member_count: allMembers.filter(m => m.team_id === team.id).length
         }));
 
         return NextResponse.json({ teams: teamsWithCounts });
