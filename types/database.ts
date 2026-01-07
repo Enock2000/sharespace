@@ -20,7 +20,7 @@ export interface ShareLink {
     expires_at?: number;   // Optional expiration timestamp
     created_by: string;
     created_at: number;
-    views: number;
+    access_count: number;
     is_active: boolean;
 }
 

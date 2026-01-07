@@ -24,7 +24,7 @@ export async function GET(
         }
 
         // Increment view count
-        await db.update(`share_links/${link.id}`, { views: link.views + 1 });
+        await db.update(`share_links/${link.id}`, { access_count: (link.access_count || 0) + 1 });
 
         // If password protected, return limited info
         if (link.password_hash) {

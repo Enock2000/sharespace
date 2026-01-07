@@ -81,7 +81,7 @@ export async function POST(
             token: token,
             created_by: userId,
             created_at: Date.now(),
-            views: 0,
+            access_count: 0,
             is_active: true,
             expires_at: expiresAt ? new Date(expiresAt).getTime() : undefined,
             password_hash: password ? createHash('sha256').update(password).digest('hex') : undefined

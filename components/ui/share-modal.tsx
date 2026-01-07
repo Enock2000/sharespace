@@ -17,7 +17,7 @@ interface ShareLink {
     is_active: boolean;
     expires_at?: number;
     has_password?: boolean; // We don't get the hash back
-    views: number;
+    access_count: number;
 }
 
 export function ShareModal({ fileId, fileName, isOpen, onClose }: ShareModalProps) {
@@ -197,10 +197,10 @@ export function ShareModal({ fileId, fileName, isOpen, onClose }: ShareModalProp
                                                     <p className="text-xs font-mono text-slate-500 truncate" title={link.token}>
                                                         ...{link.token.substring(0, 8)}
                                                     </p>
-                                                    {link.has_password && <Icons.Lock className="w-3 h-3 text-orange-500" title="Password Protected" />}
-                                                    {link.expires_at && <Icons.Clock className="w-3 h-3 text-blue-500" title={`Expires: ${new Date(link.expires_at).toLocaleDateString()}`} />}
+                                                    {link.has_password && <span title="Password Protected"><Icons.Lock className="w-3 h-3 text-orange-500" /></span>}
+                                                    {link.expires_at && <span title={`Expires: ${new Date(link.expires_at).toLocaleDateString()}`}><Icons.Clock className="w-3 h-3 text-blue-500" /></span>}
                                                 </div>
-                                                <p className="text-xs text-slate-400">{link.views} views</p>
+                                                <p className="text-xs text-slate-400">{link.access_count} views</p>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <button
