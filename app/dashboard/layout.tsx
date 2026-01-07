@@ -10,6 +10,8 @@ import { useState, useEffect } from "react";
 import { db } from "@/lib/database/schema";
 import { User, File as FileType } from "@/types/database";
 import { Icons } from "@/components/ui/icons";
+import NotificationBell from "@/components/ui/notification-bell";
+import GlobalSearch from "@/components/ui/global-search";
 
 export default function DashboardLayout({
     children,
@@ -64,7 +66,9 @@ function Sidebar() {
         { href: "/dashboard", label: "Overview", icon: Icons.BarChart },
         { href: "/dashboard/folders", label: "Folders", icon: Icons.Folder },
         { href: "/dashboard/files", label: "Files", icon: Icons.File },
-        { href: "/dashboard/users", label: "Team", icon: Icons.Users },
+        { href: "/dashboard/trash", label: "Trash", icon: Icons.Trash },
+        { href: "/dashboard/teams", label: "Teams", icon: Icons.Users },
+        { href: "/dashboard/users", label: "Members", icon: Icons.User },
         { href: "/dashboard/audit", label: "Audit Logs", icon: Icons.Scroll },
         { href: "/dashboard/billing", label: "Billing", icon: Icons.CreditCard },
     ];
@@ -152,11 +156,11 @@ function Header() {
                 <span className="text-xs font-medium">Secure Workspace</span>
             </div>
 
+            {/* Global Search */}
+            <GlobalSearch />
+
             <div className="flex items-center gap-4">
-                <button className="p-2 text-slate-400 hover:text-slate-600 transition-colors relative">
-                    <Icons.Bell className="w-5 h-5" />
-                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-800"></span>
-                </button>
+                <NotificationBell />
 
                 <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-700 mx-2"></div>
 

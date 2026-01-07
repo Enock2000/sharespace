@@ -95,3 +95,119 @@ export interface AuditLog {
     timestamp: number;
     metadata?: Record<string, any>;
 }
+
+// ========== TRASH & RECOVERY ==========
+export interface DeletedItem {
+    id: string;
+    item_type: "file" | "folder";
+    item_id: string;
+    item_name: string;
+    original_path: string; // Parent folder ID or null for root
+    tenant_id: string;
+    deleted_by: string;
+    deleted_at: number;
+    expires_at: number; // Auto-purge date (30 days default)
+    size?: number; // Only for files
+    mime_type?: string; // Only for files
+}
+
+// ========== NOTIFICATION SYSTEM ==========
+export type NotificationType =
+    | "file_shared"
+    | "comment_added"
+    | "mention"
+    | "file_updated"
+    | "storage_warning"
+    | "invitation"
+    | "file_request"
+    | "system";
+
+export interface Notification {
+    id: string;
+    user_id: string;
+    tenant_id: string;
+    type: NotificationType;
+    title: string;
+    message: string;
+    resource_type?: "file" | "folder" | "user" | "system";
+    resource_id?: string;
+    actor_id?: string; // Who triggered the notification
+    is_read: boolean;
+    created_at: number;
+    action_url?: string; // Link to navigate on click
+}
+
+export interface NotificationPreferences {
+    user_id: string;
+    email_enabled: boolean;
+    push_enabled: boolean;
+    file_shared: boolean;
+    comments: boolean;
+    mentions: boolean;
+    file_updates: boolean;
+    storage_warnings: boolean;
+    marketing: boolean;
+}
+
+// ========== TAGS & METADATA ==========
+export interface FileTag {
+    id: string;
+    tenant_id: string;
+    name: string;
+    color: string; // Hex color code
+    created_by: string;
+    created_at: number;
+}
+
+export interface FileTagAssignment {
+    file_id: string;
+    tag_id: string;
+    assigned_by: string;
+    assigned_at: number;
+}
+
+// ========== FAVORITES & RECENT ==========
+export interface FavoriteFile {
+    user_id: string;
+    file_id: string;
+    added_at: number;
+}
+
+export interface RecentFile {
+    user_id: string;
+    file_id: string;
+    accessed_at: number;
+}
+
+// ========== COMMENTS ==========
+export interface FileComment {
+    id: string;
+    file_id: string;
+    user_id: string;
+    content: string;
+    parent_id: string | null; // For threaded replies
+    mentions: string[]; // User IDs mentioned
+    is_resolved: boolean;
+    created_at: number;
+    updated_at: number;
+}
+
+// ========== TEAMS & GROUPS ==========
+export interface Team {
+    id: string;
+    tenant_id: string;
+    name: string;
+    description: string;
+    color: string;
+    created_by: string;
+    created_at: number;
+    updated_at: number;
+}
+
+export interface TeamMember {
+    team_id: string;
+    user_id: string;
+    role: "admin" | "member";
+    added_by: string;
+    added_at: number;
+}
