@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth/auth-context";
 import { Icons } from "@/components/ui/icons";
-import { Team, User } from "@/types/database";
+import { db } from "@/lib/database/schema";
+import { Team, User, TeamMember } from "@/types/database";
 
 interface TeamWithCount extends Team {
     member_count: number;
