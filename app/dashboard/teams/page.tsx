@@ -30,9 +30,26 @@ export default function TeamsPage() {
     const fetchTeams = async () => {
         if (!user) return;
         try {
-            const res = await fetch(`/api/teams?userId=${user.uid}`);
-            const data = await res.json();
-            setTeams(data.teams || []);
+            // Fetch user profile to get tenant_id
+            const userProfile = await db.get<User>(`users/${user.uid}`);
+            if (!userProfile) return;
+
+            // Direct client-side fetch inherits Auth context
+            const teamsMap = await db.get<Record<string, Team>>(`teams`) || {};
+            const tenantTeams = Object.values(teamsMap)
+                .filter(t => t.tenant_id === userProfile.tenant_id)
+                .sort((a, b) => a.name.localeCompare(b.name));
+
+            // Get member counts
+            const membersMap = await db.get<Record<string, TeamMember>>(`team_members`) || {};
+            const allMembers = Object.values(membersMap);
+
+            const teamsWithCounts = tenantTeams.map(team => ({
+                ...team,
+                member_count: allMembers.filter(m => m.team_id === team.id).length
+            }));
+
+            setTeams(teamsWithCounts);
         } catch (error) {
             console.error("Failed to fetch teams:", error);
         } finally {
@@ -43,9 +60,25 @@ export default function TeamsPage() {
     const fetchTeamMembers = async (teamId: string) => {
         if (!user) return;
         try {
-            const res = await fetch(`/api/teams/${teamId}/members?userId=${user.uid}`);
-            const data = await res.json();
-            setTeamMembers(data.members || []);
+            // Direct client-side fetch
+            const membersMap = await db.get<Record<string, TeamMember>>(`team_members`) || {};
+            const teamMembers = Object.values(membersMap)
+                .filter(m => m.team_id === teamId);
+
+            // Fetch user details for each member
+            const usersMap = await db.get<Record<string, User>>(`users`) || {};
+
+            const membersWithDetails = teamMembers.map(member => ({
+                ...member,
+                user: usersMap[member.user_id] ? {
+                    id: usersMap[member.user_id].id,
+                    first_name: usersMap[member.user_id].first_name,
+                    last_name: usersMap[member.user_id].last_name,
+                    email: usersMap[member.user_id].email
+                } : null
+            }));
+
+            setTeamMembers(membersWithDetails);
         } catch (error) {
             console.error("Failed to fetch team members:", error);
         }
@@ -54,9 +87,14 @@ export default function TeamsPage() {
     const fetchAllUsers = async () => {
         if (!user) return;
         try {
-            const res = await fetch(`/api/users?userId=${user.uid}`);
-            const data = await res.json();
-            setAllUsers(data.users || []);
+            const userProfile = await db.get<User>(`users/${user.uid}`);
+            if (!userProfile) return;
+
+            const usersMap = await db.get<Record<string, User>>(`users`) || {};
+            const tenantUsers = Object.values(usersMap)
+                .filter(u => u.tenant_id === userProfile.tenant_id);
+
+            setAllUsers(tenantUsers);
         } catch (error) {
             console.error("Failed to fetch users:", error);
         }
@@ -75,91 +113,129 @@ export default function TeamsPage() {
 
     const handleCreateTeam = async () => {
         if (!user || !newTeamName.trim()) return;
-        try {
-            const res = await fetch(`/api/teams?userId=${user.uid}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    name: newTeamName.trim(),
-                    description: newTeamDescription.trim()
-                })
-            });
 
-            if (res.ok) {
-                const data = await res.json();
-                setTeams(prev => [...prev, data.team]);
-                setShowCreate(false);
-                setNewTeamName("");
-                setNewTeamDescription("");
-            } else {
-                const error = await res.json();
-                alert(error.error || "Failed to create team. You may not have permission.");
+        try {
+            const userProfile = await db.get<User>(`users/${user.uid}`);
+            if (!userProfile) {
+                alert("User profile not found");
+                return;
             }
+
+            if (!["owner", "admin", "super_admin", "platform_admin"].includes(userProfile.role)) {
+                alert("You do not have permission to create teams.");
+                return;
+            }
+
+            const teamId = `team_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            const team: Team = {
+                id: teamId,
+                tenant_id: userProfile.tenant_id,
+                name: newTeamName.trim(),
+                description: newTeamDescription.trim() || "",
+                color: "#3b82f6",
+                created_by: user.uid,
+                created_at: Date.now(),
+                updated_at: Date.now()
+            };
+
+            await db.set(`teams/${teamId}`, team);
+
+            // Add creator as admin
+            const membership: TeamMember = {
+                team_id: teamId,
+                user_id: user.uid,
+                role: "admin",
+                added_by: user.uid,
+                added_at: Date.now()
+            };
+            await db.set(`team_members/tm_${teamId}_${user.uid}`, membership);
+
+            setTeams(prev => [...prev, { ...team, member_count: 1 }]);
+            setShowCreate(false);
+            setNewTeamName("");
+            setNewTeamDescription("");
+
         } catch (error) {
             console.error("Failed to create team:", error);
-            alert("An unexpected error occurred.");
+            alert("Failed to create team. Permission denied?");
         }
     };
 
     const handleDeleteTeam = async (teamId: string) => {
         if (!user || !confirm("Delete this team?")) return;
         try {
-            const res = await fetch(`/api/teams?userId=${user.uid}&teamId=${teamId}`, {
-                method: "DELETE"
-            });
+            // We can check permissions here client side too or rely on rules
+            await db.remove(`teams/${teamId}`);
+            // Note: In client-side only approach, we might miss deleting members if not careful or if using transactions. 
+            // Ideally we use a Cloud Function for cascade delete, but here we can try:
+            // Fetch members and delete? Or just leave them orphaned (not ideal).
+            // Let's iterate and delete members for cleanup
+            const membersMap = await db.get<Record<string, TeamMember>>(`team_members`) || {};
+            const membersToDelete = Object.values(membersMap).filter(m => m.team_id === teamId);
+            for (const m of membersToDelete) {
+                // We need the key. db.get returns values.
+                // This is tricky without the key.
+                // But our keys construct is tm_${teamId}_${userId}
+                await db.remove(`team_members/tm_${teamId}_${m.user_id}`);
+            }
 
-            if (res.ok) {
-                setTeams(prev => prev.filter(t => t.id !== teamId));
-                if (selectedTeam?.id === teamId) {
-                    setSelectedTeam(null);
-                }
+            setTeams(prev => prev.filter(t => t.id !== teamId));
+            if (selectedTeam?.id === teamId) {
+                setSelectedTeam(null);
             }
         } catch (error) {
             console.error("Failed to delete team:", error);
+            alert("Failed to delete team.");
         }
     };
 
     const handleAddMember = async (memberId: string) => {
         if (!user || !selectedTeam) return;
         try {
-            const res = await fetch(`/api/teams/${selectedTeam.id}/members?userId=${user.uid}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ memberId })
-            });
+            const membership: TeamMember = {
+                team_id: selectedTeam.id,
+                user_id: memberId,
+                role: "member",
+                added_by: user.uid,
+                added_at: Date.now()
+            };
 
-            if (res.ok) {
-                const data = await res.json();
-                setTeamMembers(prev => [...prev, data.member]);
-                setTeams(prev => prev.map(t =>
-                    t.id === selectedTeam.id
-                        ? { ...t, member_count: t.member_count + 1 }
-                        : t
-                ));
-            }
+            await db.set(`team_members/tm_${selectedTeam.id}_${memberId}`, membership);
+
+            // Optimistic update
+            // We need full user object
+            const userObj = allUsers.find(u => u.id === memberId);
+
+            setTeamMembers(prev => [...prev, {
+                ...membership,
+                user: userObj || null
+            }]);
+
+            setTeams(prev => prev.map(t =>
+                t.id === selectedTeam.id
+                    ? { ...t, member_count: t.member_count + 1 }
+                    : t
+            ));
         } catch (error) {
             console.error("Failed to add member:", error);
+            alert("Failed to add member.");
         }
     };
 
-    const handleRemoveMember = async (memberId: string) => {
+    const handleRemoveMember = async (memberUserId: string) => {
         if (!user || !selectedTeam || !confirm("Remove this member?")) return;
         try {
-            const res = await fetch(
-                `/api/teams/${selectedTeam.id}/members?userId=${user.uid}&memberId=${memberId}`,
-                { method: "DELETE" }
-            );
+            await db.remove(`team_members/tm_${selectedTeam.id}_${memberUserId}`);
 
-            if (res.ok) {
-                setTeamMembers(prev => prev.filter(m => m.user_id !== memberId));
-                setTeams(prev => prev.map(t =>
-                    t.id === selectedTeam.id
-                        ? { ...t, member_count: Math.max(0, t.member_count - 1) }
-                        : t
-                ));
-            }
+            setTeamMembers(prev => prev.filter(m => m.user_id !== memberUserId));
+            setTeams(prev => prev.map(t =>
+                t.id === selectedTeam.id
+                    ? { ...t, member_count: Math.max(0, t.member_count - 1) }
+                    : t
+            ));
         } catch (error) {
             console.error("Failed to remove member:", error);
+            alert("Failed to remove member.");
         }
     };
 
