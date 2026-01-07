@@ -91,9 +91,13 @@ export default function TeamsPage() {
                 setShowCreate(false);
                 setNewTeamName("");
                 setNewTeamDescription("");
+            } else {
+                const error = await res.json();
+                alert(error.error || "Failed to create team. You may not have permission.");
             }
         } catch (error) {
             console.error("Failed to create team:", error);
+            alert("An unexpected error occurred.");
         }
     };
 
@@ -209,8 +213,8 @@ export default function TeamsPage() {
                                 key={team.id}
                                 onClick={() => setSelectedTeam(team)}
                                 className={`w-full p-4 rounded-xl border transition-all text-left ${selectedTeam?.id === team.id
-                                        ? "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-300 dark:border-indigo-700"
-                                        : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-indigo-300"
+                                    ? "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-300 dark:border-indigo-700"
+                                    : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-indigo-300"
                                     }`}
                             >
                                 <div className="flex items-center gap-3">
@@ -274,8 +278,8 @@ export default function TeamsPage() {
                                                 <p className="text-xs text-slate-500">{member.user?.email}</p>
                                             </div>
                                             <span className={`text-xs px-2 py-0.5 rounded ${member.role === "admin"
-                                                    ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
-                                                    : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+                                                ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
+                                                : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
                                                 }`}>
                                                 {member.role}
                                             </span>
