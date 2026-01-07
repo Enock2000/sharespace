@@ -34,6 +34,45 @@ export interface FilePermission {
     added_at: number;
 }
 
+export interface ChatChannel {
+    id: string;
+    tenant_id: string;
+    name: string;
+    type: 'public' | 'private';
+    created_by: string;
+    created_at: number;
+    members?: Record<string, boolean>;
+}
+
+export interface DMConversation {
+    id: string;
+    participants: string[]; // User IDs
+    participants_tenants: Record<string, string>; // UserID -> TenantID
+    last_message?: {
+        content: string;
+        sender_id: string;
+        timestamp: number;
+    };
+    created_at: number;
+    updated_at: number;
+}
+
+export interface ChatMessage {
+    id: string;
+    conversation_id: string;
+    sender_id: string;
+    content: string;
+    timestamp: number;
+    read_by?: Record<string, number>;
+    type: 'text' | 'file';
+    file_attachment?: {
+        name: string;
+        url: string;
+        size: number;
+        type: string;
+    };
+}
+
 export interface User {
     id: string;
     email: string;

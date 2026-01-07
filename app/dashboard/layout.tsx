@@ -68,6 +68,7 @@ function Sidebar() {
         { href: "/dashboard/files", label: "Files", icon: Icons.File },
         { href: "/dashboard/trash", label: "Trash", icon: Icons.Trash },
         { href: "/dashboard/teams", label: "Teams", icon: Icons.Users },
+        { href: "/dashboard/chat", label: "Messages", icon: Icons.MessageCircle },
         { href: "/dashboard/users", label: "Members", icon: Icons.User },
         { href: "/dashboard/audit", label: "Audit Logs", icon: Icons.Scroll },
         { href: "/dashboard/billing", label: "Billing", icon: Icons.CreditCard },
