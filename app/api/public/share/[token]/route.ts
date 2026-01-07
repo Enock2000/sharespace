@@ -46,8 +46,8 @@ export async function GET(
             file: {
                 name: file.name,
                 size: file.size,
-                type: file.type,
-                url: file.url, // In a real system, generate a signed URL here
+                type: file.mime_type,
+                url: `/api/files/download/${file.id}`,
                 updated_at: file.updated_at
             }
         });
@@ -95,8 +95,8 @@ export async function POST(
             file: {
                 name: file.name,
                 size: file.size,
-                type: file.type,
-                url: file.url,
+                type: file.mime_type,
+                url: `/api/files/download/${file.id}`,
                 updated_at: file.updated_at
             }
         });
