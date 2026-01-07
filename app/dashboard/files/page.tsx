@@ -6,6 +6,7 @@ import B2FileUploader from "@/components/ui/b2-file-uploader";
 import { File, Folder } from "@/types/database";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Icons } from "@/components/ui/icons";
+import { ShareModal } from "@/components/ui/share-modal";
 
 type SortOption = "name_asc" | "name_desc" | "date_desc" | "date_asc" | "size_desc" | "size_asc";
 
@@ -27,6 +28,7 @@ export default function FilesPage() {
 
     // File Viewer State
     const [viewingFile, setViewingFile] = useState<File | null>(null);
+    const [sharingFile, setSharingFile] = useState<File | null>(null);
 
     const fetchContents = async () => {
         if (!user) return;
@@ -260,9 +262,9 @@ export default function FilesPage() {
                         >
                             <div className="flex items-center gap-3 mb-2">
                                 <div className={`p-2 rounded-lg ${file.mime_type.startsWith("image/") ? "bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400" :
-                                        file.mime_type.startsWith("video/") ? "bg-pink-50 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400" :
-                                            file.mime_type.startsWith("audio/") ? "bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400" :
-                                                "bg-slate-50 text-slate-600 dark:bg-slate-700 dark:text-slate-400"
+                                    file.mime_type.startsWith("video/") ? "bg-pink-50 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400" :
+                                        file.mime_type.startsWith("audio/") ? "bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400" :
+                                            "bg-slate-50 text-slate-600 dark:bg-slate-700 dark:text-slate-400"
                                     }`}>
                                     {file.mime_type.startsWith("image/") ? <Icons.Image className="w-6 h-6" /> :
                                         file.mime_type.startsWith("video/") ? <Icons.Video className="w-6 h-6" /> :
@@ -277,6 +279,13 @@ export default function FilesPage() {
                             </div>
 
                             <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); setSharingFile(file); }}
+                                    className="p-1.5 hover:bg-indigo-50 text-indigo-600 rounded-lg bg-white shadow-sm border border-slate-100"
+                                    title="Share"
+                                >
+                                    <Icons.Share2 className="w-4 h-4" />
+                                </button>
                                 <button
                                     onClick={(e) => { e.stopPropagation(); handleDownload(file); }}
                                     className="p-1.5 hover:bg-blue-50 text-blue-600 rounded-lg bg-white shadow-sm border border-slate-100"
@@ -440,6 +449,15 @@ export default function FilesPage() {
                         </button>
                     </div>
                 </div>
+            )}
+            {/* Share Modal */}
+            {sharingFile && (
+                <ShareModal
+                    isOpen={true}
+                    onClose={() => setSharingFile(null)}
+                    fileId={sharingFile.id}
+                    fileName={sharingFile.name}
+                />
             )}
         </div>
     );

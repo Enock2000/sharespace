@@ -11,6 +11,29 @@ export interface Tenant {
     plan: "free" | "basic" | "pro" | "enterprise";
 }
 
+export interface ShareLink {
+    id: string;
+    tenant_id: string;
+    file_id: string;
+    token: string;
+    password_hash?: string; // Optional password protection
+    expires_at?: number;   // Optional expiration timestamp
+    created_by: string;
+    created_at: number;
+    views: number;
+    is_active: boolean;
+}
+
+export interface FilePermission {
+    id: string;
+    file_id: string;
+    tenant_id: string;
+    user_id: string;
+    role: 'viewer' | 'editor';
+    added_by: string;
+    added_at: number;
+}
+
 export interface User {
     id: string;
     email: string;
