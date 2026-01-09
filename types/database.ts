@@ -11,6 +11,23 @@ export interface Tenant {
     plan: "free" | "basic" | "pro" | "enterprise";
 }
 
+export interface UploadRecord {
+    id: string;
+    user_id: string;
+    tenant_id: string;
+    file_name: string;
+    file_size: number;
+    mime_type: string;
+    folder_id: string | null;
+    status: 'pending' | 'uploading' | 'paused' | 'failed' | 'complete';
+    progress: number; // 0-100
+    error_message?: string;
+    b2_file_id?: string; // For resumable uploads
+    created_at: number;
+    updated_at: number;
+    retry_count: number;
+}
+
 export interface ShareLink {
     id: string;
     tenant_id: string;

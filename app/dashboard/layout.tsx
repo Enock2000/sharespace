@@ -66,6 +66,7 @@ function Sidebar() {
         { href: "/dashboard", label: "Overview", icon: Icons.BarChart },
         { href: "/dashboard/folders", label: "Folders", icon: Icons.Folder },
         { href: "/dashboard/files", label: "Files", icon: Icons.File },
+        { href: "/dashboard/uploads", label: "Uploads", icon: Icons.UploadCloud },
         { href: "/dashboard/trash", label: "Trash", icon: Icons.Trash },
         { href: "/dashboard/teams", label: "Teams", icon: Icons.Users },
         { href: "/dashboard/chat", label: "Messages", icon: Icons.MessageCircle },

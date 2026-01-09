@@ -137,10 +137,41 @@ export default function B2FileUploader({
 
         activeUploadsRef.current.add(item.id);
 
+        // Create persistent upload record
+        let dbRecordId: string | null = null;
+        try {
+            const recordRes = await fetch("/api/uploads", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userId: user.uid,
+                    fileName: item.file.name,
+                    fileSize: item.file.size,
+                    mimeType: item.file.type || "application/octet-stream",
+                    folderId: currentFolderId
+                })
+            });
+            if (recordRes.ok) {
+                const data = await recordRes.json();
+                dbRecordId = data.upload?.id;
+            }
+        } catch (e) {
+            console.warn("Failed to create upload record:", e);
+        }
+
         try {
             const urlResponse = await fetch("/api/files/b2-upload-url");
             if (!urlResponse.ok) throw new Error("Failed to get upload URL");
             const { uploadUrl, authorizationToken } = await urlResponse.json();
+
+            // Update status to uploading
+            if (dbRecordId) {
+                fetch(`/api/uploads/${dbRecordId}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ userId: user.uid, status: "uploading" })
+                }).catch(() => { });
+            }
 
             await new Promise<void>((resolve, reject) => {
                 const xhr = new XMLHttpRequest();
@@ -161,18 +192,28 @@ export default function B2FileUploader({
 
                         const remaining = event.total - event.loaded;
                         const timeRemaining = speed > 0 ? remaining / speed : 0;
+                        const progress = Math.round((event.loaded / event.total) * 100);
 
                         setUploads(prev => prev.map(u =>
                             u.id === item.id ? {
                                 ...u,
                                 loaded: event.loaded,
                                 total: event.total,
-                                percent: Math.round((event.loaded / event.total) * 100),
+                                percent: progress,
                                 speed,
                                 timeRemaining,
                                 status: "uploading" as const
                             } : u
                         ));
+
+                        // Update DB progress periodically (every 10%)
+                        if (dbRecordId && progress % 10 === 0) {
+                            fetch(`/api/uploads/${dbRecordId}`, {
+                                method: "PATCH",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ userId: user.uid, progress })
+                            }).catch(() => { });
+                        }
 
                         lastLoaded = event.loaded;
                         lastTime = currentTime;
@@ -207,27 +248,63 @@ export default function B2FileUploader({
                             setUploads(prev => prev.map(u =>
                                 u.id === item.id ? { ...u, status: "complete" as const, percent: 100 } : u
                             ));
+
+                            // Mark as complete in DB
+                            if (dbRecordId) {
+                                fetch(`/api/uploads/${dbRecordId}`, {
+                                    method: "PATCH",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ userId: user.uid, status: "complete", progress: 100 })
+                                }).catch(() => { });
+                            }
+
                             onUploadComplete();
                             resolve();
                         } catch (error: any) {
                             setUploads(prev => prev.map(u =>
                                 u.id === item.id ? { ...u, status: "error" as const, errorMessage: error.message } : u
                             ));
+                            // Mark as failed in DB
+                            if (dbRecordId) {
+                                fetch(`/api/uploads/${dbRecordId}`, {
+                                    method: "PATCH",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ userId: user.uid, status: "failed", errorMessage: error.message })
+                                }).catch(() => { });
+                            }
                             reject(error);
                         }
                     } else {
+                        const errorMsg = `HTTP ${xhr.status}`;
                         setUploads(prev => prev.map(u =>
-                            u.id === item.id ? { ...u, status: "error" as const, errorMessage: `HTTP ${xhr.status}` } : u
+                            u.id === item.id ? { ...u, status: "error" as const, errorMessage: errorMsg } : u
                         ));
-                        reject(new Error(`HTTP ${xhr.status}`));
+                        // Mark as failed in DB
+                        if (dbRecordId) {
+                            fetch(`/api/uploads/${dbRecordId}`, {
+                                method: "PATCH",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ userId: user.uid, status: "failed", errorMessage: errorMsg })
+                            }).catch(() => { });
+                        }
+                        reject(new Error(errorMsg));
                     }
                 });
 
                 xhr.addEventListener("error", () => {
+                    const errorMsg = "Network error during upload";
                     setUploads(prev => prev.map(u =>
-                        u.id === item.id ? { ...u, status: "error" as const, errorMessage: "Network error" } : u
+                        u.id === item.id ? { ...u, status: "error" as const, errorMessage: errorMsg } : u
                     ));
-                    reject(new Error("Network error"));
+                    // Mark as failed in DB
+                    if (dbRecordId) {
+                        fetch(`/api/uploads/${dbRecordId}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ userId: user.uid, status: "failed", errorMessage: errorMsg })
+                        }).catch(() => { });
+                    }
+                    reject(new Error(errorMsg));
                 });
 
                 xhr.open("POST", uploadUrl);
@@ -242,8 +319,16 @@ export default function B2FileUploader({
 
                 xhr.send(item.file);
             });
-        } catch (error) {
+        } catch (error: any) {
             console.error("Upload error:", error);
+            // Mark as failed in DB if not already
+            if (dbRecordId) {
+                fetch(`/api/uploads/${dbRecordId}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ userId: user.uid, status: "failed", errorMessage: error.message || "Unknown error" })
+                }).catch(() => { });
+            }
         } finally {
             activeUploadsRef.current.delete(item.id);
         }
