@@ -1,15 +1,22 @@
 import Link from "next/link";
 import Image from "next/image";
+import { BackgroundSlider } from "@/components/ui/background-slider";
+
+const BACKGROUND_IMAGES = [
+    "https://images.unsplash.com/photo-1558494949-efdeb6bf80d1?q=80&w=2832&auto=format&fit=crop", // Server room
+    "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop", // Network
+    "https://images.unsplash.com/photo-1563986768609-322da13575f3?q=80&w=1470&auto=format&fit=crop", // Security
+    "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2070&auto=format&fit=crop", // Analytics
+    "https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=1470&auto=format&fit=crop", // Team
+    "https://images.unsplash.com/photo-1544197150-b99a580bbc7c?q=80&w=1995&auto=format&fit=crop", // Data
+    "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2070&auto=format&fit=crop", // Tech
+];
 
 export default function Home() {
     return (
-        <div className="min-h-screen bg-[#0a0a1a] text-white overflow-hidden">
-            {/* Background Gradient Orbs */}
-            <div className="fixed inset-0 z-0 pointer-events-none">
-                <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-indigo-600/20 rounded-full blur-[120px] animate-pulse" />
-                <div className="absolute top-[30%] right-[-5%] w-[500px] h-[500px] bg-purple-600/15 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: "1s" }} />
-                <div className="absolute bottom-[-10%] left-[30%] w-[400px] h-[400px] bg-blue-600/10 rounded-full blur-[80px] animate-pulse" style={{ animationDelay: "2s" }} />
-            </div>
+        <div className="min-h-screen bg-[#0a0a1a] text-white overflow-hidden relative">
+            {/* Background Slider */}
+            <BackgroundSlider images={BACKGROUND_IMAGES} />
 
             {/* Navigation */}
             <nav className="relative z-20 container mx-auto px-6 py-5 flex justify-between items-center">
