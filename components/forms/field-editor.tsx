@@ -109,7 +109,7 @@ export default function FieldEditor({ field, onChange, onClose }: FieldEditorPro
             </div>
 
             {/* Required Toggle */}
-            <label className="flex items-center gap-3 cursor-pointer">
+            <label className="flex items-center gap-3 cursor-pointer" onClick={() => updateField({ required: !field.required })}>
                 <div className={`w-10 h-6 rounded-full p-0.5 transition-colors ${field.required ? "bg-blue-500" : "bg-slate-300 dark:bg-slate-600"}`}>
                     <div className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${field.required ? "translate-x-4" : "translate-x-0"}`} />
                 </div>
@@ -222,8 +222,7 @@ export default function FieldEditor({ field, onChange, onClose }: FieldEditorPro
                 </div>
             )}
 
-            {/* Required toggle click handler */}
-            <div className="hidden" onClick={() => updateField({ required: !field.required })} />
+
         </div>
     );
 }
