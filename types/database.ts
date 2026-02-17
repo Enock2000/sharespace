@@ -292,3 +292,136 @@ export interface TeamMember {
     added_by: string;
     added_at: number;
 }
+
+// ========== FORM BUILDER ==========
+export type FormFieldType =
+    | "short_text" | "long_text" | "number" | "email" | "phone"
+    | "date" | "time" | "dropdown" | "radio" | "checkbox"
+    | "yes_no" | "rating" | "file_upload" | "signature";
+
+export interface FormFieldValidation {
+    min_length?: number;
+    max_length?: number;
+    min?: number;
+    max?: number;
+    regex?: string;
+    allowed_file_types?: string[];
+    max_file_size?: number;
+}
+
+export interface FormField {
+    id: string;
+    type: FormFieldType;
+    label: string;
+    placeholder?: string;
+    help_text?: string;
+    required: boolean;
+    options?: string[];
+    validation?: FormFieldValidation;
+    order: number;
+}
+
+export interface FormSettings {
+    is_published: boolean;
+    share_token: string;
+    password?: string;
+    expires_at?: number;
+    max_responses?: number;
+    one_per_user: boolean;
+    thank_you_message: string;
+    redirect_url?: string;
+    upload_folder_id?: string;
+}
+
+export interface Form {
+    id: string;
+    tenant_id: string;
+    created_by: string;
+    title: string;
+    description?: string;
+    fields: FormField[];
+    settings: FormSettings;
+    status: "draft" | "published" | "closed";
+    response_count: number;
+    created_at: number;
+    updated_at: number;
+}
+
+export type FormResponseStatus = "new" | "in_review" | "approved" | "rejected";
+
+export interface FormResponse {
+    id: string;
+    form_id: string;
+    tenant_id: string;
+    respondent_email?: string;
+    respondent_ip?: string;
+    answers: Record<string, any>;
+    file_attachments?: Record<string, string>;
+    status: FormResponseStatus;
+    submitted_at: number;
+}
+
+// ========== E-SIGNATURES ==========
+export type SignatureFieldType = "signature" | "initials" | "date" | "text" | "checkbox";
+export type SignerStatus = "pending" | "viewed" | "signed" | "declined";
+export type SignatureRequestStatus = "draft" | "pending" | "in_progress" | "completed" | "cancelled" | "declined";
+
+export interface SignatureField {
+    id: string;
+    signer_id: string;
+    type: SignatureFieldType;
+    label: string;
+    required: boolean;
+    page: number;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    value?: string;
+}
+
+export interface Signer {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    order: number;
+    status: SignerStatus;
+    sign_token: string;
+    signed_at?: number;
+    ip_address?: string;
+    user_agent?: string;
+}
+
+export interface SignatureRequest {
+    id: string;
+    tenant_id: string;
+    created_by: string;
+    title: string;
+    message?: string;
+    document_url: string;
+    document_name: string;
+    document_pages: number;
+    fields: SignatureField[];
+    signers: Signer[];
+    status: SignatureRequestStatus;
+    signing_order: "sequential" | "parallel";
+    expires_at?: number;
+    completed_at?: number;
+    cancelled_at?: number;
+    created_at: number;
+    updated_at: number;
+}
+
+export interface SignatureAuditEntry {
+    id: string;
+    request_id: string;
+    signer_id?: string;
+    action: "created" | "sent" | "viewed" | "signed" | "declined" | "cancelled" | "completed" | "downloaded";
+    actor_name: string;
+    actor_email?: string;
+    ip_address?: string;
+    user_agent?: string;
+    timestamp: number;
+    details?: string;
+}

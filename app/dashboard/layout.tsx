@@ -94,6 +94,8 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
         { href: "/dashboard/uploads", label: "Uploads", icon: Icons.UploadCloud },
         { href: "/dashboard/trash", label: "Trash", icon: Icons.Trash },
         { href: "/dashboard/teams", label: "Teams", icon: Icons.Users },
+        { href: "/dashboard/forms", label: "Forms", icon: Icons.ClipboardList },
+        { href: "/dashboard/signatures", label: "Signatures", icon: Icons.FileSignature },
         { href: "/dashboard/chat", label: "Messages", icon: Icons.MessageCircle },
         { href: "/dashboard/users", label: "Members", icon: Icons.User },
         { href: "/dashboard/audit", label: "Audit Logs", icon: Icons.Scroll },

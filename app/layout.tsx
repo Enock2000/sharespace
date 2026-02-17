@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Script from "next/script";
+import { ThemeProvider } from "@/lib/utils/theme-context";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -16,7 +17,7 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en">
+        <html lang="en" suppressHydrationWarning>
             <head>
                 <Script
                     src="https://pay.lenco.co/js/v1/inline.js"
@@ -34,7 +35,12 @@ export default function RootLayout({
                     }}
                 />
             </head>
-            <body className={inter.className}>{children}</body>
+            <body className={inter.className}>
+                <ThemeProvider defaultTheme="dark">
+                    {children}
+                </ThemeProvider>
+            </body>
         </html>
     );
 }
+
