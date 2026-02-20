@@ -22,7 +22,7 @@ export default function Home() {
             <nav className="relative z-20 container mx-auto px-4 sm:px-6 py-4 sm:py-5 flex justify-between items-center">
                 <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                     <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-xl overflow-hidden shadow-lg shadow-indigo-500/20">
-                        <Image src="/logo.jpg" alt="Shared Spaces Logo" fill className="object-cover" />
+                        <Image src="/logo.png" alt="Shared Spaces Logo" fill className="object-cover" />
                     </div>
                     <span className="text-lg sm:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
                         Shared Spaces
@@ -368,7 +368,7 @@ export default function Home() {
                         <div className="col-span-2 md:col-span-1">
                             <div className="flex items-center gap-2 mb-3 sm:mb-4">
                                 <div className="relative w-7 h-7 sm:w-8 sm:h-8 rounded-lg overflow-hidden">
-                                    <Image src="/logo.jpg" alt="Logo" fill className="object-cover" />
+                                    <Image src="/logo.png" alt="Logo" fill className="object-cover" />
                                 </div>
                                 <span className="font-bold text-slate-900 dark:text-white text-sm sm:text-base">Shared Spaces</span>
                             </div>

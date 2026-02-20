@@ -19,10 +19,10 @@ export async function GET(request: NextRequest) {
             pricing = {
                 standard: {
                     price: 600,
-                    storage_gb: 100,
+                    storage_gb: 250,
                     user_limit: 25,
                     features: [
-                        "100GB Secure Storage",
+                        "250GB Secure Storage",
                         "25 Team Members",
                         "Advanced File Sharing",
                         "Priority Email Support",
@@ -42,10 +42,10 @@ export async function GET(request: NextRequest) {
             pricing: {
                 standard: {
                     price: 600,
-                    storage_gb: 100,
+                    storage_gb: 250,
                     user_limit: 25,
                     features: [
-                        "100GB Secure Storage",
+                        "250GB Secure Storage",
                         "25 Team Members",
                         "Advanced File Sharing",
                         "Priority Email Support",

@@ -9,6 +9,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
     title: "Shared Spaces",
     description: "Secure, multi-tenant document collaboration platform",
+    viewport: "width=device-width, initial-scale=1, viewport-fit=cover",
 };
 
 export default function RootLayout({
@@ -35,7 +36,7 @@ export default function RootLayout({
                     }}
                 />
             </head>
-            <body className={inter.className}>
+            <body className={`${inter.className}`} style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
                 <ThemeProvider defaultTheme="dark">
                     {children}
                 </ThemeProvider>

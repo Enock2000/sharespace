@@ -100,6 +100,7 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
         { href: "/dashboard/users", label: "Members", icon: Icons.User },
         { href: "/dashboard/audit", label: "Audit Logs", icon: Icons.Scroll },
         { href: "/dashboard/billing", label: "Billing", icon: Icons.CreditCard },
+        { href: "/dashboard/support", label: "Support", icon: Icons.LifeBuoy },
         { href: "/dashboard/settings", label: "Settings", icon: Icons.Settings },
     ];
 
@@ -123,7 +124,7 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
                 <div className="p-6 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="relative w-8 h-8 rounded-lg overflow-hidden shadow-sm">
-                            <Image src="/logo.jpg" alt="Logo" fill className="object-cover" />
+                            <Image src="/logo.png" alt="Logo" fill className="object-cover" />
                         </div>
                         <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
                             Shared Spaces

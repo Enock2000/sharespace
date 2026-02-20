@@ -61,7 +61,7 @@ export default function SettingsPage() {
                 price: 9.99,
                 storage_gb: 100,
                 user_limit: 25,
-                features: ["Everything in Free", "25 users", "100GB storage", "Email support"],
+                features: ["Everything in Free", "25 users", "250GB storage", "Email support"],
             },
             pro: {
                 price: 29.99,
@@ -173,8 +173,8 @@ export default function SettingsPage() {
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id as any)}
                                 className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors ${activeTab === tab.id
-                                        ? "border-purple-600 text-purple-600 dark:text-purple-400"
-                                        : "border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                                    ? "border-purple-600 text-purple-600 dark:text-purple-400"
+                                    : "border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                                     }`}
                             >
                                 <Icon className="w-4 h-4" />

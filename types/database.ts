@@ -425,3 +425,23 @@ export interface SignatureAuditEntry {
     timestamp: number;
     details?: string;
 }
+
+// ========== SUPPORT CENTER ==========
+export interface SupportTicket {
+    id: string;
+    user_id: string;
+    user_email: string;
+    subject: string;
+    message: string;
+    status: 'open' | 'in_progress' | 'resolved';
+    created_at: number;
+}
+
+export interface AccountDeletionRequest {
+    id: string;
+    user_id: string;
+    user_email: string;
+    reason?: string;
+    status: 'pending' | 'processing' | 'completed';
+    requested_at: number;
+}
