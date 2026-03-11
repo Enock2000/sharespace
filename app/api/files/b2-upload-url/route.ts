@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { backblazeService } from "@/lib/storage/backblaze";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
     try {
         // In a real app, we should verify the user is authenticated here

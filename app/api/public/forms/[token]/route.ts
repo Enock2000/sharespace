@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getAdminDatabase } from "@/lib/firebase-admin";
 import { Form, FormResponse, FormField } from "@/types/database";
 
+export const dynamic = 'force-dynamic';
+
 interface RouteParams {
     params: { token: string };
 }

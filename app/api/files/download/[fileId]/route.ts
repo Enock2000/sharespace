@@ -4,6 +4,8 @@ import { db } from "@/lib/database/schema";
 import { File } from "@/types/database";
 import { authenticateRequest } from "@/lib/auth/auth-api";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request, { params }: { params: { fileId: string } }) {
     // 1. Authenticate Request (supports header or ?token=...)
     const authResult = await authenticateRequest(request);

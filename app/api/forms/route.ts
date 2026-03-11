@@ -3,6 +3,8 @@ import { authenticateRequest } from "@/lib/auth/auth-api";
 import { getAdminDatabase } from "@/lib/firebase-admin";
 import { Form, FormField } from "@/types/database";
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/forms — List all forms for the user's tenant
 export async function GET(request: Request) {
     const authResult = await authenticateRequest(request);

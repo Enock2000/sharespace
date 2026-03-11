@@ -4,6 +4,8 @@ import { ref, push, serverTimestamp } from "firebase/database";
 import { authenticateRequest } from "@/lib/auth/auth-api";
 import { sendEmail } from "@/lib/email/email-service";
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
     try {
         const authResult = await authenticateRequest(request);

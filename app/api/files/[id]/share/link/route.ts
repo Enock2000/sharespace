@@ -4,6 +4,8 @@ import { User, File, ShareLink } from "@/types/database";
 import { logEvent } from "@/lib/utils/audit-logger";
 import { createHash } from "crypto";
 
+export const dynamic = 'force-dynamic';
+
 // Helper to generate secure token
 function generateToken(): string {
     return createHash('sha256').update(Math.random().toString() + Date.now().toString()).digest('hex').substring(0, 32);

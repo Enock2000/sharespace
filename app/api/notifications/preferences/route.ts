@@ -3,6 +3,8 @@ import { authenticateRequest } from "@/lib/auth/auth-api";
 import { db } from "@/lib/database/schema";
 import { NotificationPreferences } from "@/types/database";
 
+export const dynamic = 'force-dynamic';
+
 const DEFAULT_PREFERENCES: NotificationPreferences = {
     user_id: "",
     email_enabled: true,

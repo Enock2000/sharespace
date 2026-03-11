@@ -4,6 +4,8 @@ import { getFileVersions } from "@/lib/storage/file-service";
 import { db } from "@/lib/database/schema";
 import { File } from "@/types/database";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(
     request: Request,
     { params }: { params: { id: string } }

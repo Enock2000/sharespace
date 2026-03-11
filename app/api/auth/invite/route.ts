@@ -4,6 +4,8 @@ import { logEvent } from "@/lib/utils/audit-logger";
 import { User } from "@/types/database";
 import { v4 as uuidv4 } from "uuid";
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
     try {
         const { email, role, inviterId } = await request.json();

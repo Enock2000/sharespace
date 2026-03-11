@@ -7,6 +7,8 @@ import { getFileSharedEmailTemplate } from "@/lib/email/templates";
 import { createNotification } from "@/lib/notifications/notification-service";
 import { v4 as uuidv4 } from "uuid";
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
     const authResult = await authenticateRequest(request);
     if (authResult instanceof NextResponse) return authResult;

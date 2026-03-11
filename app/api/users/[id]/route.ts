@@ -5,6 +5,8 @@ import { authenticateRequest, requireRole } from "@/lib/auth/auth-api";
 import { logEvent } from "@/lib/utils/audit-logger";
 import { getAdminAuth } from "@/lib/firebase-admin";
 
+export const dynamic = 'force-dynamic';
+
 // GET - Get user details
 export async function GET(
     request: Request,

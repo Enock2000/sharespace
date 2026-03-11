@@ -3,6 +3,8 @@ import { authenticateRequest } from "@/lib/auth/auth-api";
 import { getAdminDatabase } from "@/lib/firebase-admin";
 import { Form, FormResponse } from "@/types/database";
 
+export const dynamic = 'force-dynamic';
+
 interface RouteParams {
     params: { formId: string };
 }

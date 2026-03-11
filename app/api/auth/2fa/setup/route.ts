@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/auth/auth-api";
 import { generateTwoFactorSecret } from "@/lib/auth/two-factor";
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
     const authResult = await authenticateRequest(req);
     if (authResult instanceof NextResponse) return authResult;

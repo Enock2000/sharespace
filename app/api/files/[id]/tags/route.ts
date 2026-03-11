@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/database/schema";
 import { User, File, FileTag, FileTagAssignment } from "@/types/database";
 
+export const dynamic = 'force-dynamic';
+
 // GET - Get tags for a specific file
 export async function GET(
     request: Request,

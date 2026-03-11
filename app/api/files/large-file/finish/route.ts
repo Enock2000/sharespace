@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { backblazeService } from "@/lib/storage/backblaze";
 import { db } from "@/lib/database/schema";
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
     try {
         const { fileId, partSha1Array, fileName, fileSize, contentType, folderId, userId } = await request.json();

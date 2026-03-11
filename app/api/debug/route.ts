@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/database/schema";
 import { User } from "@/types/database";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
     // Only allow in development
     if (process.env.NODE_ENV === "production") {

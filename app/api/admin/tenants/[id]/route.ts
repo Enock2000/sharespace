@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getTenantById, updateTenant, deleteTenant } from "@/lib/database/admin-schema";
 import { logAdminAction } from "@/lib/auth/admin-middleware";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(
     request: NextRequest,
     { params }: { params: { id: string } }

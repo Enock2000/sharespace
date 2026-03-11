@@ -5,6 +5,8 @@ import { v4 as uuidv4 } from "uuid";
 
 import { rateLimiter } from "@/lib/utils/rate-limiter";
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
     const ip = request.headers.get("x-forwarded-for") || "unknown";
 

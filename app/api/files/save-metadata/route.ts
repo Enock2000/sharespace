@@ -3,6 +3,8 @@ import { createFile, findFile, addFileVersion, checkStorageQuota } from "@/lib/s
 import { logEvent } from "@/lib/utils/audit-logger";
 import { authenticateRequest } from "@/lib/auth/auth-api";
 
+export const dynamic = 'force-dynamic';
+
 // This endpoint saves metadata after a direct B2 upload
 export async function POST(request: Request) {
     const authResult = await authenticateRequest(request);

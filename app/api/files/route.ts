@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getFolderContents } from "@/lib/storage/file-service";
 import { authenticateRequest } from "@/lib/auth/auth-api";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
     const authResult = await authenticateRequest(request);
     if (authResult instanceof NextResponse) return authResult;

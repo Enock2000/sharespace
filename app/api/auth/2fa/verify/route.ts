@@ -3,6 +3,8 @@ import { authenticateRequest } from "@/lib/auth/auth-api";
 import { verifyTwoFactorToken } from "@/lib/auth/two-factor";
 import { db } from "@/lib/database/schema";
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
     const authResult = await authenticateRequest(req);
     if (authResult instanceof NextResponse) return authResult;

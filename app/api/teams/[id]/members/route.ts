@@ -3,6 +3,8 @@ import { db } from "@/lib/database/schema";
 import { User, Team, TeamMember } from "@/types/database";
 import { notifySystem } from "@/lib/utils/notifications";
 
+export const dynamic = 'force-dynamic';
+
 // GET - Get team members
 export async function GET(
     request: Request,

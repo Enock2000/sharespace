@@ -4,6 +4,8 @@ import { getAdminDatabase } from "@/lib/firebase-admin";
 import { SignatureRequest, Signer } from "@/types/database";
 import { randomBytes } from "crypto";
 
+export const dynamic = 'force-dynamic';
+
 type RouteParams = { params: Promise<{ requestId: string }> };
 
 // POST — Add a signer

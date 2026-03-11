@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/database/schema";
 import { User, DMConversation } from "@/types/database";
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
     try {
         const body = await request.json();

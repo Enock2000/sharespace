@@ -4,6 +4,8 @@ import { authenticateRequest } from "@/lib/auth/auth-api";
 import { db } from "@/lib/database/schema";
 import { logEvent } from "@/lib/utils/audit-logger";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: Request) {
     const authResult = await authenticateRequest(req);
     if (authResult instanceof NextResponse) return authResult;

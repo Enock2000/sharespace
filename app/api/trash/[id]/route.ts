@@ -3,6 +3,8 @@ import { db } from "@/lib/database/schema";
 import { User, File, Folder, DeletedItem } from "@/types/database";
 import { logEvent } from "@/lib/utils/audit-logger";
 
+export const dynamic = 'force-dynamic';
+
 // POST - Restore item from trash
 export async function POST(
     request: Request,

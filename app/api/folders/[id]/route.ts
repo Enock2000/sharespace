@@ -3,6 +3,8 @@ import { db } from "@/lib/database/schema";
 import { User, Folder } from "@/types/database";
 import { logEvent } from "@/lib/utils/audit-logger";
 
+export const dynamic = 'force-dynamic';
+
 export async function DELETE(
     request: Request,
     { params }: { params: { id: string } }

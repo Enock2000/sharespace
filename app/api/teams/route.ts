@@ -4,6 +4,8 @@ import { Team, TeamMember } from "@/types/database";
 import { logEvent } from "@/lib/utils/audit-logger";
 import { authenticateRequest, requireRole } from "@/lib/auth/auth-api";
 
+export const dynamic = 'force-dynamic';
+
 // GET - List all teams for tenant
 export async function GET(request: Request) {
     const authResult = await authenticateRequest(request);

@@ -3,6 +3,8 @@ import { authenticateRequest } from "@/lib/auth/auth-api";
 import { getAdminDatabase } from "@/lib/firebase-admin";
 import { SignatureRequest, SignatureAuditEntry, Signer } from "@/types/database";
 
+export const dynamic = 'force-dynamic';
+
 type RouteParams = { params: Promise<{ requestId: string }> };
 
 // GET — Get signature request detail

@@ -5,6 +5,8 @@ import { User } from "@/types/database";
 import { registerUser } from "@/lib/auth/firebase-auth";
 import { v4 as uuidv4 } from "uuid";
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
     try {
         const {

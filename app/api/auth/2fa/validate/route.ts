@@ -5,6 +5,8 @@ import { User } from "@/types/database";
 
 import { rateLimiter } from "@/lib/utils/rate-limiter";
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
     const ip = req.headers.get("x-forwarded-for") || "unknown";
 

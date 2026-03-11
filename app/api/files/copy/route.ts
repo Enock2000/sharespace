@@ -4,6 +4,8 @@ import { copyFile } from "@/lib/storage/file-service";
 import { db } from "@/lib/database/schema";
 import { File } from "@/types/database";
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
     const authResult = await authenticateRequest(request);
     if (authResult instanceof NextResponse) return authResult;

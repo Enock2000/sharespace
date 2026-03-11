@@ -5,6 +5,8 @@ import { logEvent } from "@/lib/utils/audit-logger";
 import { notifyCommentAdded, notifyMention } from "@/lib/utils/notifications";
 import { authenticateRequest } from "@/lib/auth/auth-api";
 
+export const dynamic = 'force-dynamic';
+
 // GET - Get comments for a file
 export async function GET(
     request: Request,

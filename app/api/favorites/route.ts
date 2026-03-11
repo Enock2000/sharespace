@@ -3,6 +3,8 @@ import { db } from "@/lib/database/schema";
 import { File } from "@/types/database";
 import { authenticateRequest } from "@/lib/auth/auth-api";
 
+export const dynamic = 'force-dynamic';
+
 // GET - List favorites
 export async function GET(request: Request) {
     const authResult = await authenticateRequest(request);

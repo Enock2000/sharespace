@@ -3,6 +3,8 @@ import { db } from "@/lib/database/schema";
 import { ShareLink, File } from "@/types/database";
 import { createHash } from "crypto";
 
+export const dynamic = 'force-dynamic';
+
 // GET - Validate token and get file info (if public)
 export async function GET(
     request: Request,

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/database/schema";
 import { User, AuditLog } from "@/types/database";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId");

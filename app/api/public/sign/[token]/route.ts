@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getAdminDatabase } from "@/lib/firebase-admin";
 import { SignatureRequest, SignatureAuditEntry } from "@/types/database";
 
+export const dynamic = 'force-dynamic';
+
 type RouteParams = { params: Promise<{ token: string }> };
 
 // GET — Fetch document and fields for this signer (public, no auth)

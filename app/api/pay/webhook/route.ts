@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/database/schema";
 import { logEvent } from "@/lib/utils/audit-logger";
 
+export const dynamic = 'force-dynamic';
+
 // Lenco Webhook secret should be in env
 // const WEBHOOK_SECRET = process.env.LENCO_WEBHOOK_SECRET;
 

@@ -3,6 +3,8 @@ import { authenticateRequest } from "@/lib/auth/auth-api";
 import { getAdminDatabase } from "@/lib/firebase-admin";
 import { SignatureRequest, SignatureAuditEntry } from "@/types/database";
 
+export const dynamic = 'force-dynamic';
+
 // GET — List all signature requests for tenant
 export async function GET(request: Request) {
     const authResult = await authenticateRequest(request);

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/database/schema";
 import { User, UploadRecord } from "@/types/database";
 
+export const dynamic = 'force-dynamic';
+
 // PATCH - Update upload status/progress
 export async function PATCH(
     request: Request,

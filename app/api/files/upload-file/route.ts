@@ -5,6 +5,8 @@ import { db } from "@/lib/database/schema";
 import { logEvent } from "@/lib/utils/audit-logger";
 import { User } from "@/types/database";
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
     try {
         const formData = await request.formData();

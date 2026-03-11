@@ -7,6 +7,8 @@ import { canPerformAction } from "@/lib/auth/rbac";
 import { getUserTeamIds } from "@/lib/auth/team-utils";
 import { logEvent } from "@/lib/utils/audit-logger";
 
+export const dynamic = 'force-dynamic';
+
 // POST: Grant permission to a team (group) for a resource
 // DELETE: Revoke permission for a team (group) from a resource
 

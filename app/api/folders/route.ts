@@ -3,6 +3,8 @@ import { createFolder } from "@/lib/storage/file-service";
 import { logEvent } from "@/lib/utils/audit-logger";
 import { authenticateRequest } from "@/lib/auth/auth-api";
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
     const authResult = await authenticateRequest(request);
     if (authResult instanceof NextResponse) return authResult;

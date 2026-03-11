@@ -4,6 +4,8 @@ import { File, DeletedItem } from "@/types/database";
 import { logEvent } from "@/lib/utils/audit-logger";
 import { authenticateRequest } from "@/lib/auth/auth-api";
 
+export const dynamic = 'force-dynamic';
+
 const TRASH_RETENTION_DAYS = 30;
 
 export async function DELETE(

@@ -2,6 +2,8 @@
 import { NextResponse } from "next/server";
 import { sendNotificationEmail } from "@/lib/utils/email";
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
     try {
         const { name, email, message } = await request.json();
