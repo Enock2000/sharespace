@@ -62,17 +62,35 @@ export interface ChatChannel {
     last_message_at?: number;
 }
 
+// ========== CHAT WAVE TYPES ==========
+export type ChatMessageType = 'text' | 'image' | 'video' | 'file' | 'voice' | 'system';
+
 export interface DMConversation {
     id: string;
     participants: string[]; // User IDs
     participants_tenants: Record<string, string>; // UserID -> TenantID
+    type?: 'direct' | 'group';
+    groupName?: string;
+    groupPhoto?: string;
     last_message?: {
         content: string;
         sender_id: string;
         timestamp: number;
+        type?: ChatMessageType;
     };
     created_at: number;
     updated_at: number;
+    created_by?: string;
+    // Per-member metadata stored inline for fast reads
+    members_meta?: Record<string, ConversationMemberMeta>;
+}
+
+export interface ConversationMemberMeta {
+    unreadCount: number;
+    lastReadAt: number;
+    isMuted: boolean;
+    isPinned: boolean;
+    archived: boolean;
 }
 
 export interface ChatMessage {
@@ -82,13 +100,31 @@ export interface ChatMessage {
     content: string;
     timestamp: number;
     read_by?: Record<string, number>;
-    type: 'text' | 'file';
+    type: ChatMessageType;
     file_attachment?: {
         name: string;
         url: string;
         size: number;
         type: string;
+        thumbnailUrl?: string;
     };
+    reply_to?: {
+        id: string;
+        content: string;
+        sender_id: string;
+    };
+    reactions?: Record<string, string[]>; // emoji -> userIds
+    seenBy?: string[];
+    deliveredTo?: string[];
+    edited?: boolean;
+    edited_at?: number;
+    deletedForEveryone?: boolean;
+}
+
+export interface UserPresence {
+    isOnline: boolean;
+    lastSeen: number;
+    typingTo?: string; // conversationId the user is typing in
 }
 
 export interface User {

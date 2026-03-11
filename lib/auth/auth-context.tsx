@@ -25,27 +25,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const unsubscribe = getFirebaseAuth().onAuthStateChanged((user) => {
             setUser(user);
             setLoading(false);
-
-            // Basic client-side protection
-            const isAuthPage = pathname?.startsWith("/login") || pathname?.startsWith("/register");
-            const isAdminLoginPage = pathname === "/admin/login";
-            const isPublicPage = pathname === "/" || pathname?.startsWith("/pricing");
-
-            if (!user && !isAuthPage && !isAdminLoginPage && !isPublicPage) {
-                router.push("/login");
-            } else if (user && isAuthPage) {
-                // Only redirect regular login, not admin login
-                router.push("/dashboard");
-            }
-            // Admin login page handles its own redirects
         });
 
         return () => unsubscribe();
-    }, [pathname, router]);
+    }, []);
+
+    useEffect(() => {
+        if (loading) return; // Wait until initial auth state is known
+
+        // Basic client-side protection
+        const isAuthPage = pathname?.startsWith("/login") || pathname?.startsWith("/register");
+        const isAdminPage = pathname?.startsWith("/admin");
+        const isPublicPage = pathname === "/" || pathname?.startsWith("/pricing");
+
+        if (!user && !isAuthPage && !isAdminPage && !isPublicPage) {
+            router.push("/login");
+        } else if (user && isAuthPage) {
+            // Only redirect regular login, not admin login
+            router.push("/dashboard");
+        }
+        // Admin pages handle their own redirects in their layouts/middleware
+    }, [pathname, router, user, loading]);
 
     return (
         <AuthContext.Provider value={{ user, loading }}>
-            {!loading && children}
+            {children}
         </AuthContext.Provider>
     );
 };

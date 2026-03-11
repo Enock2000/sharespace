@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useAuth } from "@/lib/auth/auth-context";
 import { authFetch } from "@/lib/utils/api-client";
 import B2FileUploader, { B2FileUploaderRef } from "@/components/ui/b2-file-uploader";
@@ -16,6 +16,28 @@ import { Skeleton } from "@/components/ui/skeleton";
 type SortOption = "name_asc" | "name_desc" | "date_desc" | "date_asc" | "size_desc" | "size_asc";
 
 export default function FilesPage() {
+    return (
+        <Suspense fallback={
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {Array.from({ length: 8 }).map((_, i) => (
+                    <div key={i} className="p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                        <div className="flex items-center gap-3 mb-2">
+                            <Skeleton variant="rounded" className="w-10 h-10" />
+                            <div className="space-y-2 flex-1">
+                                <Skeleton variant="text" className="h-4 w-3/4" />
+                                <Skeleton variant="text" className="h-3 w-1/2" />
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        }>
+            <FilesPageContent />
+        </Suspense>
+    );
+}
+
+function FilesPageContent() {
     const { user } = useAuth();
     const searchParams = useSearchParams();
     const router = useRouter();

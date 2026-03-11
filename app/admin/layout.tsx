@@ -1,13 +1,21 @@
 "use client";
 
-import { useAuth } from "@/lib/auth/auth-context";
+import { AuthProvider, useAuth } from "@/lib/auth/auth-context";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Icons } from "@/components/ui/icons";
-import { isPlatformAdmin } from "@/lib/auth/admin-middleware";
+import { isPlatformAdminClient } from "@/lib/auth/admin-client";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+    return (
+        <AuthProvider>
+            <AdminLayoutContent>{children}</AdminLayoutContent>
+        </AuthProvider>
+    );
+}
+
+function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     const { user, loading: authLoading } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
@@ -41,26 +49,32 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 // Add timeout to prevent infinite loading
                 const timeout = setTimeout(() => {
                     if (mounted) {
-                        console.error("Admin check timed out");
+                        console.error("[AdminLayout] Admin check timed out after 5s.");
                         setLoading(false);
                         setIsAdmin(false);
                         router.push("/admin/login");
                     }
                 }, 5000);
 
-                const adminStatus = await isPlatformAdmin(user.uid);
-                clearTimeout(timeout);
+                try {
+                    const adminStatus = await isPlatformAdminClient(user.uid);
+                    clearTimeout(timeout);
 
-                if (mounted) {
-                    setIsAdmin(adminStatus);
-                    setLoading(false);
+                    if (mounted) {
+                        setIsAdmin(adminStatus);
+                        setLoading(false);
 
-                    if (!adminStatus) {
-                        router.push("/admin/login");
+                        if (!adminStatus) {
+                            router.push("/admin/login");
+                        }
                     }
+                } catch (innerError) {
+                    clearTimeout(timeout);
+                    console.error("[AdminLayout] Error inside admin check promise:", innerError);
+                    throw innerError;
                 }
             } catch (error) {
-                console.error("Admin check error:", error);
+                console.error("[AdminLayout] Admin check error block caught:", error);
                 if (mounted) {
                     setLoading(false);
                     setIsAdmin(false);

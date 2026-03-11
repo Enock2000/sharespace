@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Icons } from "@/components/ui/icons";
 import { useAuth } from "@/lib/auth/auth-context";
-import { isPlatformAdmin } from "@/lib/auth/admin-middleware";
+import { isPlatformAdminClient } from "@/lib/auth/admin-client";
 
 export default function AdminLoginPage() {
     const [email, setEmail] = useState("");
@@ -30,7 +30,7 @@ export default function AdminLoginPage() {
                         setTimeout(() => reject(new Error("Auth check timed out")), 5000)
                     );
 
-                    const checkPromise = isPlatformAdmin(user.uid);
+                    const checkPromise = isPlatformAdminClient(user.uid);
                     const isAdmin = await Promise.race([checkPromise, timeoutPromise]);
 
                     if (mounted) {
