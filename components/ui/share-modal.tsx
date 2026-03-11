@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Icons } from "@/components/ui/icons";
 import { useAuth } from "@/lib/auth/auth-context";
+import { authFetch } from "@/lib/utils/api-client";
 
 interface ShareModalProps {
     fileId: string;
@@ -40,18 +41,17 @@ export function ShareModal({ fileId, fileName, isOpen, onClose }: ShareModalProp
         setLoading(true);
         try {
             const emails = inviteEmails.split(",").map(e => e.trim()).filter(e => e);
-            const res = await fetch(`/api/files/${fileId}/share/invite`, {
+            const res = await authFetch(`/api/files/${fileId}/share/invite`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${await user.getIdToken()}`
                 },
                 body: JSON.stringify({
                     fileId,
                     emails,
                     message: inviteMessage
                 })
-            });
+            }, user);
 
             if (res.ok) {
                 alert("Invitations sent successfully!");
@@ -84,11 +84,10 @@ export function ShareModal({ fileId, fileName, isOpen, onClose }: ShareModalProp
     }, [isOpen, activeTab, user]);
 
     const fetchTeams = async () => {
+        if (!user) return;
         try {
             // Note: In real app, we should probably cache this or pass it down
-            const res = await fetch(`/api/teams/list`, {
-                headers: { "Authorization": `Bearer ${await user?.getIdToken()}` }
-            });
+            const res = await authFetch(`/api/teams/list`, {}, user);
             if (res.ok) {
                 const data = await res.json();
                 setTeams(data.teams || []);
@@ -102,18 +101,17 @@ export function ShareModal({ fileId, fileName, isOpen, onClose }: ShareModalProp
         if (!user || !selectedTeam) return;
         setLoading(true);
         try {
-            const res = await fetch(`/api/teams/${selectedTeam}/permissions`, {
+            const res = await authFetch(`/api/teams/${selectedTeam}/permissions`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${await user.getIdToken()}`
                 },
                 body: JSON.stringify({
                     resourceId: fileId,
                     resourceType: "file",
                     permissionLevel
                 })
-            });
+            }, user);
 
             if (res.ok) {
                 alert("Team access granted successfully!");
@@ -135,7 +133,7 @@ export function ShareModal({ fileId, fileName, isOpen, onClose }: ShareModalProp
         if (!user) return;
         setLoading(true);
         try {
-            const res = await fetch(`/api/files/${fileId}/share/link?userId=${user.uid}`);
+            const res = await authFetch(`/api/files/${fileId}/share/link?userId=${user.uid}`, {}, user);
             if (res.ok) {
                 const data = await res.json();
                 setLinks(data.links);
@@ -151,14 +149,14 @@ export function ShareModal({ fileId, fileName, isOpen, onClose }: ShareModalProp
         if (!user) return;
         setLoading(true);
         try {
-            const res = await fetch(`/api/files/${fileId}/share/link?userId=${user.uid}`, {
+            const res = await authFetch(`/api/files/${fileId}/share/link?userId=${user.uid}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     password: password || undefined,
                     expiresAt: expiration || undefined
                 })
-            });
+            }, user);
 
             if (res.ok) {
                 const data = await res.json();
@@ -178,9 +176,9 @@ export function ShareModal({ fileId, fileName, isOpen, onClose }: ShareModalProp
     const handleRevokeLink = async (linkId: string) => {
         if (!user || !confirm("Revoke this link? It will stop working immediately.")) return;
         try {
-            const res = await fetch(`/api/files/${fileId}/share/link?userId=${user.uid}&linkId=${linkId}`, {
+            const res = await authFetch(`/api/files/${fileId}/share/link?userId=${user.uid}&linkId=${linkId}`, {
                 method: "DELETE"
-            });
+            }, user);
 
             if (res.ok) {
                 setLinks(prev => prev.filter(l => l.id !== linkId));

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth/auth-context";
 import { Icons } from "@/components/ui/icons";
 import { FileTag } from "@/types/database";
+import { authFetch } from "@/lib/utils/api-client";
 
 const TAG_COLORS = [
     { name: "Red", value: "#ef4444" },
@@ -36,12 +37,12 @@ export default function TagManager({ fileId, onTagsChange }: TagManagerProps) {
         if (!user) return;
         try {
             // Fetch all tenant tags
-            const allRes = await fetch(`/api/tags?userId=${user.uid}`);
+            const allRes = await authFetch(`/api/tags?userId=${user.uid}`, {}, user);
             const allData = await allRes.json();
             setAllTags(allData.tags || []);
 
             // Fetch tags for this file
-            const fileRes = await fetch(`/api/files/${fileId}/tags?userId=${user.uid}`);
+            const fileRes = await authFetch(`/api/files/${fileId}/tags?userId=${user.uid}`, {}, user);
             const fileData = await fileRes.json();
             setFileTags(fileData.tags || []);
         } catch (error) {
@@ -58,11 +59,11 @@ export default function TagManager({ fileId, onTagsChange }: TagManagerProps) {
     const handleCreateTag = async () => {
         if (!user || !newTagName.trim()) return;
         try {
-            const res = await fetch(`/api/tags?userId=${user.uid}`, {
+            const res = await authFetch(`/api/tags?userId=${user.uid}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ name: newTagName.trim(), color: newTagColor })
-            });
+            }, user);
 
             if (res.ok) {
                 const data = await res.json();
@@ -80,11 +81,11 @@ export default function TagManager({ fileId, onTagsChange }: TagManagerProps) {
     const handleAddTag = async (tagId: string) => {
         if (!user) return;
         try {
-            const res = await fetch(`/api/files/${fileId}/tags?userId=${user.uid}`, {
+            const res = await authFetch(`/api/files/${fileId}/tags?userId=${user.uid}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ tagId })
-            });
+            }, user);
 
             if (res.ok) {
                 const tag = allTags.find(t => t.id === tagId);
@@ -101,9 +102,9 @@ export default function TagManager({ fileId, onTagsChange }: TagManagerProps) {
     const handleRemoveTag = async (tagId: string) => {
         if (!user) return;
         try {
-            const res = await fetch(`/api/files/${fileId}/tags?userId=${user.uid}&tagId=${tagId}`, {
+            const res = await authFetch(`/api/files/${fileId}/tags?userId=${user.uid}&tagId=${tagId}`, {
                 method: "DELETE"
-            });
+            }, user);
 
             if (res.ok) {
                 setFileTags(prev => prev.filter(t => t.id !== tagId));

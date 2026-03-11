@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/lib/auth/auth-context";
 import { Icons } from "@/components/ui/icons";
 import { FileComment } from "@/types/database";
+import { authFetch } from "@/lib/utils/api-client";
 
 interface CommentWithUser extends FileComment {
     user: {
@@ -30,7 +31,7 @@ export default function CommentsPanel({ fileId, fileName }: CommentsPanelProps) 
     const fetchComments = async () => {
         if (!user) return;
         try {
-            const res = await fetch(`/api/files/${fileId}/comments?userId=${user.uid}`);
+            const res = await authFetch(`/api/files/${fileId}/comments?userId=${user.uid}`, {}, user);
             const data = await res.json();
             setComments(data.comments || []);
         } catch (error) {
@@ -50,11 +51,11 @@ export default function CommentsPanel({ fileId, fileName }: CommentsPanelProps) 
 
         setSubmitting(true);
         try {
-            const res = await fetch(`/api/files/${fileId}/comments?userId=${user.uid}`, {
+            const res = await authFetch(`/api/files/${fileId}/comments?userId=${user.uid}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ content: newComment.trim() })
-            });
+            }, user);
 
             if (res.ok) {
                 const data = await res.json();
@@ -72,9 +73,9 @@ export default function CommentsPanel({ fileId, fileName }: CommentsPanelProps) 
         if (!user || !confirm("Delete this comment?")) return;
 
         try {
-            const res = await fetch(`/api/files/${fileId}/comments?userId=${user.uid}&commentId=${commentId}`, {
+            const res = await authFetch(`/api/files/${fileId}/comments?userId=${user.uid}&commentId=${commentId}`, {
                 method: "DELETE"
-            });
+            }, user);
 
             if (res.ok) {
                 setComments(prev => prev.filter(c => c.id !== commentId));
@@ -88,11 +89,11 @@ export default function CommentsPanel({ fileId, fileName }: CommentsPanelProps) 
         if (!user) return;
 
         try {
-            const res = await fetch(`/api/files/${fileId}/comments?userId=${user.uid}&commentId=${commentId}`, {
+            const res = await authFetch(`/api/files/${fileId}/comments?userId=${user.uid}&commentId=${commentId}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ is_resolved: resolved })
-            });
+            }, user);
 
             if (res.ok) {
                 setComments(prev => prev.map(c =>

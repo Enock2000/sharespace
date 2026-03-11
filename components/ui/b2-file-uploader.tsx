@@ -12,6 +12,7 @@ import {
     UploadProgress,
     ResumableUploadState,
 } from "@/lib/resumable-upload";
+import { authFetch } from "@/lib/utils/api-client";
 
 interface UploadItem {
     id: string;
@@ -141,7 +142,7 @@ const B2FileUploader = forwardRef<B2FileUploaderRef, {
         // Create persistent upload record
         let dbRecordId: string | null = null;
         try {
-            const recordRes = await fetch("/api/uploads", {
+            const recordRes = await authFetch("/api/uploads", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -151,7 +152,7 @@ const B2FileUploader = forwardRef<B2FileUploaderRef, {
                     mimeType: item.file.type || "application/octet-stream",
                     folderId: currentFolderId
                 })
-            });
+            }, user);
             if (recordRes.ok) {
                 const data = await recordRes.json();
                 dbRecordId = data.upload?.id;
@@ -161,17 +162,17 @@ const B2FileUploader = forwardRef<B2FileUploaderRef, {
         }
 
         try {
-            const urlResponse = await fetch("/api/files/b2-upload-url");
+            const urlResponse = await authFetch("/api/files/b2-upload-url", {}, user);
             if (!urlResponse.ok) throw new Error("Failed to get upload URL");
             const { uploadUrl, authorizationToken } = await urlResponse.json();
 
             // Update status to uploading
             if (dbRecordId) {
-                fetch(`/api/uploads/${dbRecordId}`, {
+                authFetch(`/api/uploads/${dbRecordId}`, {
                     method: "PATCH",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ userId: user.uid, status: "uploading" })
-                }).catch(() => { });
+                }, user).catch(() => { });
             }
 
             await new Promise<void>((resolve, reject) => {
@@ -209,11 +210,11 @@ const B2FileUploader = forwardRef<B2FileUploaderRef, {
 
                         // Update DB progress periodically (every 10%)
                         if (dbRecordId && progress % 10 === 0) {
-                            fetch(`/api/uploads/${dbRecordId}`, {
+                            authFetch(`/api/uploads/${dbRecordId}`, {
                                 method: "PATCH",
                                 headers: { "Content-Type": "application/json" },
                                 body: JSON.stringify({ userId: user.uid, progress })
-                            }).catch(() => { });
+                            }, user).catch(() => { });
                         }
 
                         lastLoaded = event.loaded;
@@ -230,7 +231,7 @@ const B2FileUploader = forwardRef<B2FileUploaderRef, {
 
                             const b2Response = JSON.parse(xhr.responseText);
 
-                            const saveResponse = await fetch("/api/files/save-metadata", {
+                            const saveResponse = await authFetch("/api/files/save-metadata", {
                                 method: "POST",
                                 headers: { "Content-Type": "application/json" },
                                 body: JSON.stringify({
@@ -242,7 +243,7 @@ const B2FileUploader = forwardRef<B2FileUploaderRef, {
                                     fileId: b2Response.fileId,
                                     fileName: b2Response.fileName
                                 }),
-                            });
+                            }, user);
 
                             if (!saveResponse.ok) throw new Error("Failed to save metadata");
 
@@ -252,11 +253,11 @@ const B2FileUploader = forwardRef<B2FileUploaderRef, {
 
                             // Mark as complete in DB
                             if (dbRecordId) {
-                                fetch(`/api/uploads/${dbRecordId}`, {
+                                authFetch(`/api/uploads/${dbRecordId}`, {
                                     method: "PATCH",
                                     headers: { "Content-Type": "application/json" },
                                     body: JSON.stringify({ userId: user.uid, status: "complete", progress: 100 })
-                                }).catch(() => { });
+                                }, user).catch(() => { });
                             }
 
                             onUploadComplete();
@@ -267,11 +268,11 @@ const B2FileUploader = forwardRef<B2FileUploaderRef, {
                             ));
                             // Mark as failed in DB
                             if (dbRecordId) {
-                                fetch(`/api/uploads/${dbRecordId}`, {
+                                authFetch(`/api/uploads/${dbRecordId}`, {
                                     method: "PATCH",
                                     headers: { "Content-Type": "application/json" },
                                     body: JSON.stringify({ userId: user.uid, status: "failed", errorMessage: error.message })
-                                }).catch(() => { });
+                                }, user).catch(() => { });
                             }
                             reject(error);
                         }
@@ -282,11 +283,11 @@ const B2FileUploader = forwardRef<B2FileUploaderRef, {
                         ));
                         // Mark as failed in DB
                         if (dbRecordId) {
-                            fetch(`/api/uploads/${dbRecordId}`, {
+                            authFetch(`/api/uploads/${dbRecordId}`, {
                                 method: "PATCH",
                                 headers: { "Content-Type": "application/json" },
                                 body: JSON.stringify({ userId: user.uid, status: "failed", errorMessage: errorMsg })
-                            }).catch(() => { });
+                            }, user).catch(() => { });
                         }
                         reject(new Error(errorMsg));
                     }
@@ -299,11 +300,11 @@ const B2FileUploader = forwardRef<B2FileUploaderRef, {
                     ));
                     // Mark as failed in DB
                     if (dbRecordId) {
-                        fetch(`/api/uploads/${dbRecordId}`, {
+                        authFetch(`/api/uploads/${dbRecordId}`, {
                             method: "PATCH",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({ userId: user.uid, status: "failed", errorMessage: errorMsg })
-                        }).catch(() => { });
+                        }, user).catch(() => { });
                     }
                     reject(new Error(errorMsg));
                 });
@@ -324,11 +325,11 @@ const B2FileUploader = forwardRef<B2FileUploaderRef, {
             console.error("Upload error:", error);
             // Mark as failed in DB if not already
             if (dbRecordId) {
-                fetch(`/api/uploads/${dbRecordId}`, {
+                authFetch(`/api/uploads/${dbRecordId}`, {
                     method: "PATCH",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ userId: user.uid, status: "failed", errorMessage: error.message || "Unknown error" })
-                }).catch(() => { });
+                }, user).catch(() => { });
             }
         } finally {
             activeUploadsRef.current.delete(item.id);

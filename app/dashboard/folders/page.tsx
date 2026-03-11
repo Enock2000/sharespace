@@ -5,6 +5,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { Folder } from "@/types/database";
 import { useRouter } from "next/navigation";
 import { Icons } from "@/components/ui/icons";
+import { authFetch } from "@/lib/utils/api-client";
 
 interface UploadProgress {
     fileName: string;
@@ -85,7 +86,7 @@ export default function FoldersPage() {
         if (!user) return;
         try {
             setLoading(true);
-            const response = await fetch(`/api/files?userId=${user.uid}`);
+            const response = await authFetch(`/api/files?userId=${user.uid}`, {}, user);
             const data = await response.json();
             if (data.folders) {
                 setFolders(data.folders);
@@ -107,7 +108,7 @@ export default function FoldersPage() {
         setCreating(true);
         setError("");
         try {
-            const response = await fetch("/api/folders", {
+            const response = await authFetch("/api/folders", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -115,7 +116,7 @@ export default function FoldersPage() {
                     parentId: null,
                     userId: user.uid,
                 }),
-            });
+            }, user);
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || "Failed to create folder");
             setNewFolderName("");
@@ -133,11 +134,11 @@ export default function FoldersPage() {
         if (!renameValue.trim() || !user || !folderToRename) return;
         setRenaming(true);
         try {
-            const response = await fetch(`/api/folders/${folderToRename.id}?userId=${user.uid}`, {
+            const response = await authFetch(`/api/folders/${folderToRename.id}?userId=${user.uid}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ name: renameValue }),
-            });
+            }, user);
             if (!response.ok) throw new Error("Failed to rename folder");
 
             setShowRenameModal(false);
@@ -155,9 +156,9 @@ export default function FoldersPage() {
     const handleDeleteFolder = async (folderId: string, folderName: string) => {
         if (!user || !confirm(`Are you sure you want to delete "${folderName}"?`)) return;
         try {
-            const res = await fetch(`/api/folders/${folderId}?userId=${user.uid}`, {
+            const res = await authFetch(`/api/folders/${folderId}?userId=${user.uid}`, {
                 method: "DELETE",
-            });
+            }, user);
             if (res.ok) {
                 await fetchFolders();
             } else {
@@ -178,8 +179,11 @@ export default function FoldersPage() {
     const uploadFileDirectToB2 = useCallback((file: File, folderId: string): Promise<void> => {
         return new Promise(async (resolve, reject) => {
             try {
+                if (!user) {
+                    throw new Error("Not authenticated");
+                }
                 // 1. Get upload URL from our API
-                const urlResponse = await fetch("/api/files/b2-upload-url");
+                const urlResponse = await authFetch("/api/files/b2-upload-url", {}, user);
                 if (!urlResponse.ok) {
                     throw new Error("Failed to get upload URL");
                 }
@@ -228,7 +232,7 @@ export default function FoldersPage() {
                             const b2Response = JSON.parse(xhr.responseText);
 
                             // 3. Save metadata to our database
-                            const saveResponse = await fetch("/api/files/save-metadata", {
+                            const saveResponse = await authFetch("/api/files/save-metadata", {
                                 method: "POST",
                                 headers: { "Content-Type": "application/json" },
                                 body: JSON.stringify({
@@ -240,7 +244,7 @@ export default function FoldersPage() {
                                     fileId: b2Response.fileId,
                                     fileName: b2Response.fileName
                                 }),
-                            });
+                            }, user);
 
                             if (!saveResponse.ok) {
                                 throw new Error("Failed to save file metadata");

@@ -258,6 +258,19 @@ function Header({ onMenuClick }: HeaderProps) {
 }
 function ThemeToggle() {
     const { theme, setTheme } = useTheme();
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    if (!mounted) {
+        return (
+            <button className="p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700 transition-colors">
+                <Icons.Moon className="w-5 h-5 opacity-0" />
+            </button>
+        );
+    }
 
     return (
         <button

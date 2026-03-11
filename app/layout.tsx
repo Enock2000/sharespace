@@ -9,7 +9,12 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
     title: "Shared Spaces",
     description: "Secure, multi-tenant document collaboration platform",
-    viewport: "width=device-width, initial-scale=1, viewport-fit=cover",
+};
+
+export const viewport = {
+    width: "device-width",
+    initialScale: 1,
+    viewportFit: "cover",
 };
 
 export default function RootLayout({
