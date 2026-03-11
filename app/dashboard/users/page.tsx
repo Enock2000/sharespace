@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { useState, useEffect } from "react";
 import { db } from "@/lib/database/schema";
 import { User } from "@/types/database";
+import { authFetch } from "@/lib/utils/api-client";
 
 export default function UsersPage() {
     const { user } = useAuth();
@@ -34,7 +35,7 @@ export default function UsersPage() {
         if (!user) return;
         setLoading(true);
         try {
-            const res = await fetch(`/api/users?userId=${user.uid}`);
+            const res = await authFetch(`/api/users?userId=${user.uid}`, {}, user);
             if (res.ok) {
                 const data = await res.json();
                 setUsers(data.users || []);
@@ -48,16 +49,17 @@ export default function UsersPage() {
 
     const handleInvite = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!user) return;
         try {
-            const res = await fetch("/api/auth/invite", {
+            const res = await authFetch("/api/auth/invite", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     email: inviteEmail,
                     role: inviteRole,
-                    inviterId: user?.uid,
+                    inviterId: user.uid,
                 }),
-            });
+            }, user);
 
             if (res.ok) {
                 setInviteEmail("");
@@ -83,8 +85,10 @@ export default function UsersPage() {
             return;
         }
 
+        if (!user) return;
+
         try {
-            const res = await fetch("/api/users/create", {
+            const res = await authFetch("/api/users/create", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -94,9 +98,9 @@ export default function UsersPage() {
                     gender: formData.gender,
                     password: formData.password,
                     role: formData.role,
-                    createdBy: user?.uid,
+                    createdBy: user.uid,
                 }),
-            });
+            }, user);
 
             if (res.ok) {
                 setFormData({

@@ -3,8 +3,11 @@
 import { useEffect, useState } from "react";
 import { Icons } from "@/components/ui/icons";
 import { AdminAuditLog } from "@/types/admin";
+import { useAuth } from "@/lib/auth/auth-context";
+import { authFetch } from "@/lib/utils/api-client";
 
 export default function ActivityFeed() {
+    const { user } = useAuth();
     const [logs, setLogs] = useState<AdminAuditLog[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -14,7 +17,8 @@ export default function ActivityFeed() {
 
     const fetchRecentActivity = async () => {
         try {
-            const res = await fetch("/api/admin/audit?limit=5");
+            if (!user) return;
+            const res = await authFetch("/api/admin/audit?limit=5", {}, user);
             const data = await res.json();
             setLogs(data.logs || []);
         } catch (error) {

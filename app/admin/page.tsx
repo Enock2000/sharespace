@@ -5,18 +5,24 @@ import { Icons } from "@/components/ui/icons";
 import { PlatformStats } from "@/types/admin";
 import StatsWidget from "@/components/admin/stats-widget";
 import ActivityFeed from "@/components/admin/activity-feed";
+import { useAuth } from "@/lib/auth/auth-context";
+import { authFetch } from "@/lib/utils/api-client";
 
 export default function AdminDashboard() {
+    const { user } = useAuth();
     const [stats, setStats] = useState<PlatformStats | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetchPlatformStats();
-    }, []);
+        if (user) {
+            fetchPlatformStats();
+        }
+    }, [user]);
 
     const fetchPlatformStats = async () => {
         try {
-            const res = await fetch("/api/admin/stats");
+            if (!user) return;
+            const res = await authFetch("/api/admin/stats", {}, user);
             const data = await res.json();
             setStats(data);
         } catch (error) {
