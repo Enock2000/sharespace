@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth/auth-context";
 import { Icons } from "@/components/ui/icons";
 import { UploadRecord } from "@/types/database";
+import { authFetch } from "@/lib/utils/api-client";
 
 type FilterStatus = "all" | "pending" | "uploading" | "paused" | "failed" | "complete";
 
@@ -20,7 +21,7 @@ export default function UploadsPage() {
             const params = new URLSearchParams({ userId: user.uid });
             if (filter !== "all") params.append("status", filter);
 
-            const res = await fetch(`/api/uploads?${params.toString()}`);
+            const res = await authFetch(`/api/uploads?${params.toString()}`, {}, user);
             const data = await res.json();
             setUploads(data.uploads || []);
         } catch (error) {
@@ -49,7 +50,7 @@ export default function UploadsPage() {
     const handleRetry = async (upload: UploadRecord) => {
         if (!user) return;
         try {
-            await fetch(`/api/uploads/${upload.id}`, {
+            await authFetch(`/api/uploads/${upload.id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -58,7 +59,7 @@ export default function UploadsPage() {
                     progress: 0,
                     errorMessage: null
                 })
-            });
+            }, user);
             fetchUploads();
         } catch (error) {
             console.error("Failed to retry upload:", error);
@@ -68,14 +69,14 @@ export default function UploadsPage() {
     const handlePause = async (upload: UploadRecord) => {
         if (!user) return;
         try {
-            await fetch(`/api/uploads/${upload.id}`, {
+            await authFetch(`/api/uploads/${upload.id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     userId: user.uid,
                     status: "paused"
                 })
-            });
+            }, user);
             fetchUploads();
         } catch (error) {
             console.error("Failed to pause upload:", error);
@@ -85,9 +86,9 @@ export default function UploadsPage() {
     const handleDelete = async (upload: UploadRecord) => {
         if (!user || !confirm("Delete this upload record?")) return;
         try {
-            await fetch(`/api/uploads/${upload.id}?userId=${user.uid}`, {
+            await authFetch(`/api/uploads/${upload.id}?userId=${user.uid}`, {
                 method: "DELETE"
-            });
+            }, user);
             fetchUploads();
         } catch (error) {
             console.error("Failed to delete upload:", error);
@@ -97,9 +98,9 @@ export default function UploadsPage() {
     const handleClearAll = async () => {
         if (!user || !confirm("Clear all completed and failed uploads?")) return;
         try {
-            await fetch(`/api/uploads?userId=${user.uid}`, {
+            await authFetch(`/api/uploads?userId=${user.uid}`, {
                 method: "DELETE"
-            });
+            }, user);
             fetchUploads();
         } catch (error) {
             console.error("Failed to clear uploads:", error);
