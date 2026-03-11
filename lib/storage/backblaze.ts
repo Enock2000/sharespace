@@ -11,8 +11,11 @@ const CONFIG = {
 class BackblazeService {
     private b2: any;
     private authorized: boolean = false;
+    private authorizedAt: number = 0;
     private downloadUrl: string = "";
     private recommendedPartSize: number = 10 * 1024 * 1024; // Default 10MB
+    // Re-authorize every 23 hours (B2 tokens expire after 24h)
+    private static AUTH_TTL_MS = 23 * 60 * 60 * 1000;
 
     constructor() {
         this.b2 = new B2({
@@ -21,21 +24,51 @@ class BackblazeService {
         });
     }
 
+    private isAuthExpired(): boolean {
+        return !this.authorized || (Date.now() - this.authorizedAt > BackblazeService.AUTH_TTL_MS);
+    }
+
     async authorize() {
-        if (!this.authorized) {
-            const response = await this.b2.authorize();
-            this.downloadUrl = response.data.downloadUrl;
-            this.recommendedPartSize = response.data.recommendedPartSize || 10 * 1024 * 1024;
-            this.authorized = true;
+        if (this.isAuthExpired()) {
+            console.log("[BackblazeService] Authorizing with B2...");
+            try {
+                const response = await this.b2.authorize();
+                this.downloadUrl = response.data.downloadUrl;
+                this.recommendedPartSize = response.data.recommendedPartSize || 10 * 1024 * 1024;
+                this.authorized = true;
+                this.authorizedAt = Date.now();
+                console.log("[BackblazeService] Authorization successful.");
+            } catch (error: any) {
+                this.authorized = false;
+                this.authorizedAt = 0;
+                console.error("[BackblazeService] Authorization failed:", error.message);
+                throw error;
+            }
         }
     }
 
+    /** Force re-authorization on next call */
+    resetAuth() {
+        this.authorized = false;
+        this.authorizedAt = 0;
+    }
+
     async getUploadUrl() {
-        await this.authorize();
-        const response = await this.b2.getUploadUrl({
-            bucketId: CONFIG.bucketId,
-        });
-        return response.data;
+        try {
+            await this.authorize();
+            const response = await this.b2.getUploadUrl({
+                bucketId: CONFIG.bucketId,
+            });
+            return response.data;
+        } catch (error: any) {
+            console.warn("[BackblazeService] getUploadUrl failed, retrying with fresh auth...", error.message);
+            this.resetAuth();
+            await this.authorize();
+            const response = await this.b2.getUploadUrl({
+                bucketId: CONFIG.bucketId,
+            });
+            return response.data;
+        }
     }
 
     async deleteFileVersion(fileId: string, fileName: string) {
@@ -48,16 +81,31 @@ class BackblazeService {
     }
 
     async getDownloadUrl(fileName: string) {
-        await this.authorize();
-        const response = await this.b2.getDownloadAuthorization({
-            bucketId: CONFIG.bucketId,
-            fileNamePrefix: fileName,
-            validDurationInSeconds: 3600,
-        });
+        try {
+            await this.authorize();
+            const response = await this.b2.getDownloadAuthorization({
+                bucketId: CONFIG.bucketId,
+                fileNamePrefix: fileName,
+                validDurationInSeconds: 3600,
+            });
 
-        const { authorizationToken } = response.data;
-        const encodedFileName = encodeURIComponent(fileName);
-        return `${this.downloadUrl}/file/${CONFIG.bucketName}/${encodedFileName}?Authorization=${authorizationToken}`;
+            const { authorizationToken } = response.data;
+            const encodedFileName = encodeURIComponent(fileName);
+            return `${this.downloadUrl}/file/${CONFIG.bucketName}/${encodedFileName}?Authorization=${authorizationToken}`;
+        } catch (error: any) {
+            console.warn("[BackblazeService] getDownloadUrl failed, retrying with fresh auth...", error.message);
+            this.resetAuth();
+            await this.authorize();
+            const response = await this.b2.getDownloadAuthorization({
+                bucketId: CONFIG.bucketId,
+                fileNamePrefix: fileName,
+                validDurationInSeconds: 3600,
+            });
+
+            const { authorizationToken } = response.data;
+            const encodedFileName = encodeURIComponent(fileName);
+            return `${this.downloadUrl}/file/${CONFIG.bucketName}/${encodedFileName}?Authorization=${authorizationToken}`;
+        }
     }
 
     // ============ Large File API Methods ============
