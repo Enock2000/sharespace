@@ -39,17 +39,11 @@ export async function GET(request: Request, { params }: { params: { fileId: stri
         // 4. Generate Download URL from B2
         const fileName = file.b2_file_name || file.name;
         
-        // This gets the signed base URL
-        let url = await backblazeService.getDownloadUrl(fileName);
-
-        // Append B2 query parameters to force inline display and correct filename
+        // Define B2 query parameters to force inline display and correct filename
         const inlineDisposition = `inline; filename="${encodeURIComponent(file.name)}"`;
-        url += `&b2ContentDisposition=${encodeURIComponent(inlineDisposition)}`;
-
-        // If mimeType exists, tell B2 to serve it with that type
-        if (file.mime_type) {
-            url += `&b2ContentType=${encodeURIComponent(file.mime_type)}`;
-        }
+        
+        // This gets the signed base URL, passing disposition and mimeType so the token covers them
+        const url = await backblazeService.getDownloadUrl(fileName, inlineDisposition, file.mime_type || undefined);
 
         // 5. Redirect the client directly to Backblaze.
         // Proxying large files via Vercel Serverless Functions causes 502 Bad Gateway

@@ -82,21 +82,32 @@ class BackblazeService {
         return response.data;
     }
 
-    async getDownloadUrl(fileName: string) {
+    async getDownloadUrl(fileName: string, b2ContentDisposition?: string, b2ContentType?: string) {
         try {
             await this.authorize();
             // B2 requires the DECODED file name for authorization prefix
             const decodedName = decodeURIComponent(fileName);
             
+            // Pass b2ContentDisposition during authorization so the token covers it
             const response = await this.b2.getDownloadAuthorization({
                 bucketId: CONFIG.bucketId,
                 fileNamePrefix: decodedName,
                 validDurationInSeconds: 3600,
+                ...(b2ContentDisposition ? { b2ContentDisposition } : {})
             });
 
             const { authorizationToken } = response.data;
             // But the download URL requires the ENCODED file name in the path
-            return `${this.downloadUrl}/file/${CONFIG.bucketName}/${fileName}?Authorization=${encodeURIComponent(authorizationToken)}`;
+            let url = `${this.downloadUrl}/file/${CONFIG.bucketName}/${fileName}?Authorization=${encodeURIComponent(authorizationToken)}`;
+            
+            if (b2ContentDisposition) {
+                url += `&b2ContentDisposition=${encodeURIComponent(b2ContentDisposition)}`;
+            }
+            if (b2ContentType) {
+                url += `&b2ContentType=${encodeURIComponent(b2ContentType)}`;
+            }
+            
+            return url;
         } catch (error: any) {
             console.warn("[BackblazeService] getDownloadUrl failed, retrying with fresh auth...", error.message);
             this.resetAuth();
@@ -107,10 +118,20 @@ class BackblazeService {
                 bucketId: CONFIG.bucketId,
                 fileNamePrefix: decodedName,
                 validDurationInSeconds: 3600,
+                ...(b2ContentDisposition ? { b2ContentDisposition } : {})
             });
 
             const { authorizationToken } = response.data;
-            return `${this.downloadUrl}/file/${CONFIG.bucketName}/${fileName}?Authorization=${encodeURIComponent(authorizationToken)}`;
+            let url = `${this.downloadUrl}/file/${CONFIG.bucketName}/${fileName}?Authorization=${encodeURIComponent(authorizationToken)}`;
+            
+            if (b2ContentDisposition) {
+                url += `&b2ContentDisposition=${encodeURIComponent(b2ContentDisposition)}`;
+            }
+            if (b2ContentType) {
+                url += `&b2ContentType=${encodeURIComponent(b2ContentType)}`;
+            }
+            
+            return url;
         }
     }
 
