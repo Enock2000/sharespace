@@ -109,7 +109,6 @@ export function FilePreviewModal({
                         <img
                             src={downloadUrl}
                             alt={file.name}
-                            crossOrigin="anonymous"
                             className="max-w-full max-h-[80vh] object-contain shadow-2xl rounded-lg"
                         />
                     ) : file.mime_type.startsWith("video/") ? (
@@ -117,7 +116,6 @@ export function FilePreviewModal({
                             src={downloadUrl}
                             controls
                             autoPlay
-                            crossOrigin="anonymous"
                             className="max-w-full max-h-[80vh] shadow-2xl rounded-lg bg-black"
                         >
                             Your browser does not support video playback.
@@ -132,7 +130,6 @@ export function FilePreviewModal({
                                 src={downloadUrl}
                                 controls
                                 autoPlay
-                                crossOrigin="anonymous"
                                 className="w-80"
                             >
                                 Your browser does not support audio playback.
