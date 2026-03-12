@@ -37,6 +37,12 @@ class BackblazeService {
                 this.downloadUrl = response.data.downloadUrl;
                 this.apiUrl = response.data.apiUrl;
                 this.recommendedPartSize = response.data.recommendedPartSize || 10 * 1024 * 1024;
+                
+                // Fallback: If Vercel env is missing B2_BUCKET_NAME, fetch it from auth response
+                if (!CONFIG.bucketName && response.data.allowed && response.data.allowed.bucketName) {
+                    CONFIG.bucketName = response.data.allowed.bucketName;
+                }
+                
                 this.authorized = true;
                 this.authorizedAt = Date.now();
                 console.log("[BackblazeService] Authorization successful.");
@@ -97,8 +103,12 @@ class BackblazeService {
             });
 
             const { authorizationToken } = response.data;
+            
+            // Failsafe: safely ensure the path name is encoded (prevents 400 Bad Request on legacy files)
+            const safePathName = decodedName.split('/').map(segment => encodeURIComponent(segment)).join('/');
+            
             // But the download URL requires the ENCODED file name in the path
-            let url = `${this.downloadUrl}/file/${CONFIG.bucketName}/${fileName}?Authorization=${encodeURIComponent(authorizationToken)}`;
+            let url = `${this.downloadUrl}/file/${CONFIG.bucketName}/${safePathName}?Authorization=${encodeURIComponent(authorizationToken)}`;
             
             if (b2ContentDisposition) {
                 url += `&b2ContentDisposition=${encodeURIComponent(b2ContentDisposition)}`;
@@ -122,7 +132,11 @@ class BackblazeService {
             });
 
             const { authorizationToken } = response.data;
-            let url = `${this.downloadUrl}/file/${CONFIG.bucketName}/${fileName}?Authorization=${encodeURIComponent(authorizationToken)}`;
+            
+            // Failsafe: safely ensure the path name is encoded (prevents 400 Bad Request on legacy files)
+            const safePathName = decodedName.split('/').map(segment => encodeURIComponent(segment)).join('/');
+            
+            let url = `${this.downloadUrl}/file/${CONFIG.bucketName}/${safePathName}?Authorization=${encodeURIComponent(authorizationToken)}`;
             
             if (b2ContentDisposition) {
                 url += `&b2ContentDisposition=${encodeURIComponent(b2ContentDisposition)}`;
