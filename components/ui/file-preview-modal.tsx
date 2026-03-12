@@ -32,8 +32,18 @@ export function FilePreviewModal({
     useEffect(() => {
         const getUrl = async () => {
             if (!file || !user) return;
-            const token = await user.getIdToken();
-            setDownloadUrl(`/api/files/download/${file.id}?token=${token}`);
+            try {
+                const token = await user.getIdToken();
+                const res = await fetch(`/api/files/download/${file.id}/url?token=${token}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setDownloadUrl(data.url);
+                } else {
+                    console.error("Failed to fetch download url format");
+                }
+            } catch (err) {
+                console.error("Error fetching preview url:", err);
+            }
         };
         getUrl();
     }, [file, user]);
