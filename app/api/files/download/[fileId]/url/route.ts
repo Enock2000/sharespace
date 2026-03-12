@@ -36,11 +36,11 @@ export async function GET(request: Request, { params }: { params: { fileId: stri
             console.warn("Failed to log recent file access:", logError);
         }
 
-        // 4. Generate Download URL from B2 using file ID
-        const b2FileId = file.storage_key;
+        // 4. Generate Download URL from B2
+        const fileName = file.b2_file_name || file.name;
         
-        // This gets the signed URL using download-by-file-ID
-        let url = await backblazeService.getDownloadUrl(b2FileId);
+        // This gets the signed base URL
+        let url = await backblazeService.getDownloadUrl(fileName);
 
         // Append B2 query parameters to force inline display and correct filename
         const inlineDisposition = `inline; filename="${encodeURIComponent(file.name)}"`;

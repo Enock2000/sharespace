@@ -82,29 +82,35 @@ class BackblazeService {
         return response.data;
     }
 
-    async getDownloadUrl(b2FileId: string) {
+    async getDownloadUrl(fileName: string) {
         try {
             await this.authorize();
+            // B2 requires the DECODED file name for authorization prefix
+            const decodedName = decodeURIComponent(fileName);
+            
             const response = await this.b2.getDownloadAuthorization({
                 bucketId: CONFIG.bucketId,
-                fileNamePrefix: "",
+                fileNamePrefix: decodedName,
                 validDurationInSeconds: 3600,
             });
 
             const { authorizationToken } = response.data;
-            return `${this.apiUrl}/b2api/v2/b2_download_file_by_id?fileId=${encodeURIComponent(b2FileId)}&Authorization=${encodeURIComponent(authorizationToken)}`;
+            // But the download URL requires the ENCODED file name in the path
+            return `${this.downloadUrl}/file/${CONFIG.bucketName}/${fileName}?Authorization=${encodeURIComponent(authorizationToken)}`;
         } catch (error: any) {
             console.warn("[BackblazeService] getDownloadUrl failed, retrying with fresh auth...", error.message);
             this.resetAuth();
             await this.authorize();
+            
+            const decodedName = decodeURIComponent(fileName);
             const response = await this.b2.getDownloadAuthorization({
                 bucketId: CONFIG.bucketId,
-                fileNamePrefix: "",
+                fileNamePrefix: decodedName,
                 validDurationInSeconds: 3600,
             });
 
             const { authorizationToken } = response.data;
-            return `${this.apiUrl}/b2api/v2/b2_download_file_by_id?fileId=${encodeURIComponent(b2FileId)}&Authorization=${encodeURIComponent(authorizationToken)}`;
+            return `${this.downloadUrl}/file/${CONFIG.bucketName}/${fileName}?Authorization=${encodeURIComponent(authorizationToken)}`;
         }
     }
 
