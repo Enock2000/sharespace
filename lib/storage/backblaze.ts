@@ -13,6 +13,7 @@ class BackblazeService {
     private authorized: boolean = false;
     private authorizedAt: number = 0;
     private downloadUrl: string = "";
+    private apiUrl: string = "";
     private recommendedPartSize: number = 10 * 1024 * 1024; // Default 10MB
     // Re-authorize every 23 hours (B2 tokens expire after 24h)
     private static AUTH_TTL_MS = 23 * 60 * 60 * 1000;
@@ -34,6 +35,7 @@ class BackblazeService {
             try {
                 const response = await this.b2.authorize();
                 this.downloadUrl = response.data.downloadUrl;
+                this.apiUrl = response.data.apiUrl;
                 this.recommendedPartSize = response.data.recommendedPartSize || 10 * 1024 * 1024;
                 this.authorized = true;
                 this.authorizedAt = Date.now();
@@ -90,7 +92,7 @@ class BackblazeService {
             });
 
             const { authorizationToken } = response.data;
-            return `${this.downloadUrl}/b2api/v2/b2_download_file_by_id?fileId=${encodeURIComponent(b2FileId)}&Authorization=${encodeURIComponent(authorizationToken)}`;
+            return `${this.apiUrl}/b2api/v2/b2_download_file_by_id?fileId=${encodeURIComponent(b2FileId)}&Authorization=${encodeURIComponent(authorizationToken)}`;
         } catch (error: any) {
             console.warn("[BackblazeService] getDownloadUrl failed, retrying with fresh auth...", error.message);
             this.resetAuth();
@@ -102,7 +104,7 @@ class BackblazeService {
             });
 
             const { authorizationToken } = response.data;
-            return `${this.downloadUrl}/b2api/v2/b2_download_file_by_id?fileId=${encodeURIComponent(b2FileId)}&Authorization=${encodeURIComponent(authorizationToken)}`;
+            return `${this.apiUrl}/b2api/v2/b2_download_file_by_id?fileId=${encodeURIComponent(b2FileId)}&Authorization=${encodeURIComponent(authorizationToken)}`;
         }
     }
 
