@@ -38,37 +38,23 @@ export async function GET(request: Request, { params }: { params: { fileId: stri
 
         // 4. Generate Download URL from B2
         const fileName = file.b2_file_name || file.name;
-        const url = await backblazeService.getDownloadUrl(fileName);
+        
+        // This gets the signed base URL
+        let url = await backblazeService.getDownloadUrl(fileName);
 
-        // 5. Proxy the file content instead of redirecting
-        // This ensures proper Content-Type headers for img/video/audio tags
-        const b2Response = await fetch(url);
+        // Append B2 query parameters to force inline display and correct filename
+        const inlineDisposition = `inline; filename="${encodeURIComponent(file.name)}"`;
+        url += `&b2ContentDisposition=${encodeURIComponent(inlineDisposition)}`;
 
-        if (!b2Response.ok) {
-            return NextResponse.json(
-                { error: "Failed to fetch file from storage" },
-                { status: 502 }
-            );
+        // If mimeType exists, tell B2 to serve it with that type
+        if (file.mime_type) {
+            url += `&b2ContentType=${encodeURIComponent(file.mime_type)}`;
         }
 
-        const contentType = file.mime_type || b2Response.headers.get("content-type") || "application/octet-stream";
-        const contentLength = b2Response.headers.get("content-length");
-
-        const headers: Record<string, string> = {
-            "Content-Type": contentType,
-            "Cache-Control": "private, max-age=3600",
-            "Content-Disposition": `inline; filename="${encodeURIComponent(file.name)}"`,
-        };
-
-        if (contentLength) {
-            headers["Content-Length"] = contentLength;
-        }
-
-        // Stream the response body
-        return new Response(b2Response.body, {
-            status: 200,
-            headers,
-        });
+        // 5. Redirect the client directly to Backblaze.
+        // Proxying large files via Vercel Serverless Functions causes 502 Bad Gateway
+        // due to payload size (4.5MB), memory, and execution timeout limits.
+        return NextResponse.redirect(url);
 
     } catch (error: any) {
         console.error("Download error:", error);

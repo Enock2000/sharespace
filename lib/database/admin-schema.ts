@@ -1,16 +1,12 @@
-import { getFirebaseDatabase } from "@/lib/firebase-config";
-import { ref, get, set, update, remove, query, orderByChild, equalTo } from "firebase/database";
+import { getAdminDatabase } from "@/lib/firebase-admin";
 import { TenantStats, PlatformStats, AdminAuditLog, TenantQuota, UserActivityLog } from "@/types/admin";
 import { Tenant, User, File, Folder } from "@/types/database";
-
-// Get a reference to the database
-const db = getFirebaseDatabase();
 
 // ===== Platform Admin Management =====
 
 export async function getPlatformAdmins(): Promise<User[]> {
-    const usersRef = ref(db, "users");
-    const snapshot = await get(usersRef);
+    const db = getAdminDatabase();
+    const snapshot = await db.ref("users").get();
 
     if (!snapshot.exists()) return [];
 
@@ -18,7 +14,7 @@ export async function getPlatformAdmins(): Promise<User[]> {
     snapshot.forEach((child) => {
         const user = child.val();
         if (user.role === "platform_admin" || user.role === "super_admin") {
-            users.push({ id: child.key, ...user });
+            users.push({ id: child.key!, ...user });
         }
     });
 
@@ -26,10 +22,10 @@ export async function getPlatformAdmins(): Promise<User[]> {
 }
 
 export async function createPlatformAdmin(adminData: Omit<User, "id" | "created_at" | "updated_at">): Promise<string> {
+    const db = getAdminDatabase();
     const adminId = `admin_${Date.now()}`;
-    const adminRef = ref(db, `users/${adminId}`);
 
-    await set(adminRef, {
+    await db.ref(`users/${adminId}`).set({
         ...adminData,
         created_at: Date.now(),
         updated_at: Date.now(),
@@ -42,22 +38,22 @@ export async function createPlatformAdmin(adminData: Omit<User, "id" | "created_
 // ===== Tenant Management =====
 
 export async function getAllTenants(): Promise<Tenant[]> {
-    const tenantsRef = ref(db, "tenants");
-    const snapshot = await get(tenantsRef);
+    const db = getAdminDatabase();
+    const snapshot = await db.ref("tenants").get();
 
     if (!snapshot.exists()) return [];
 
     const tenants: Tenant[] = [];
     snapshot.forEach((child) => {
-        tenants.push({ id: child.key, ...child.val() });
+        tenants.push({ id: child.key!, ...child.val() });
     });
 
     return tenants;
 }
 
 export async function getTenantById(tenantId: string): Promise<Tenant | null> {
-    const tenantRef = ref(db, `tenants/${tenantId}`);
-    const snapshot = await get(tenantRef);
+    const db = getAdminDatabase();
+    const snapshot = await db.ref(`tenants/${tenantId}`).get();
 
     if (!snapshot.exists()) return null;
 
@@ -65,8 +61,8 @@ export async function getTenantById(tenantId: string): Promise<Tenant | null> {
 }
 
 export async function updateTenant(tenantId: string, updates: Partial<Tenant>): Promise<void> {
-    const tenantRef = ref(db, `tenants/${tenantId}`);
-    await update(tenantRef, updates);
+    const db = getAdminDatabase();
+    await db.ref(`tenants/${tenantId}`).update(updates);
 }
 
 export async function suspendTenant(tenantId: string, suspend: boolean): Promise<void> {
@@ -85,8 +81,8 @@ export async function suspendTenant(tenantId: string, suspend: boolean): Promise
 }
 
 export async function deleteTenant(tenantId: string): Promise<void> {
-    const tenantRef = ref(db, `tenants/${tenantId}`);
-    await remove(tenantRef);
+    const db = getAdminDatabase();
+    await db.ref(`tenants/${tenantId}`).remove();
 
     // Log the action
     await createAdminAuditLog({
@@ -125,9 +121,8 @@ export async function getTenantStats(tenantId: string): Promise<TenantStats> {
 }
 
 async function getTenantUsers(tenantId: string): Promise<User[]> {
-    const usersRef = ref(db, "users");
-    const tenantQuery = query(usersRef, orderByChild("tenant_id"), equalTo(tenantId));
-    const snapshot = await get(tenantQuery);
+    const db = getAdminDatabase();
+    const snapshot = await db.ref("users").orderByChild("tenant_id").equalTo(tenantId).get();
 
     if (!snapshot.exists()) return [];
 
@@ -140,9 +135,8 @@ async function getTenantUsers(tenantId: string): Promise<User[]> {
 }
 
 async function getTenantFiles(tenantId: string): Promise<File[]> {
-    const filesRef = ref(db, "files");
-    const tenantQuery = query(filesRef, orderByChild("tenant_id"), equalTo(tenantId));
-    const snapshot = await get(tenantQuery);
+    const db = getAdminDatabase();
+    const snapshot = await db.ref("files").orderByChild("tenant_id").equalTo(tenantId).get();
 
     if (!snapshot.exists()) return [];
 
@@ -158,9 +152,8 @@ async function getTenantFiles(tenantId: string): Promise<File[]> {
 }
 
 async function getTenantFolders(tenantId: string): Promise<Folder[]> {
-    const foldersRef = ref(db, "folders");
-    const tenantQuery = query(foldersRef, orderByChild("tenant_id"), equalTo(tenantId));
-    const snapshot = await get(tenantQuery);
+    const db = getAdminDatabase();
+    const snapshot = await db.ref("folders").orderByChild("tenant_id").equalTo(tenantId).get();
 
     if (!snapshot.exists()) return [];
 
@@ -207,8 +200,8 @@ export async function getPlatformStats(): Promise<PlatformStats> {
 }
 
 async function getAllUsers(): Promise<User[]> {
-    const usersRef = ref(db, "users");
-    const snapshot = await get(usersRef);
+    const db = getAdminDatabase();
+    const snapshot = await db.ref("users").get();
 
     if (!snapshot.exists()) return [];
 
@@ -221,8 +214,8 @@ async function getAllUsers(): Promise<User[]> {
 }
 
 async function getAllFiles(): Promise<File[]> {
-    const filesRef = ref(db, "files");
-    const snapshot = await get(filesRef);
+    const db = getAdminDatabase();
+    const snapshot = await db.ref("files").get();
 
     if (!snapshot.exists()) return [];
 
@@ -240,17 +233,17 @@ async function getAllFiles(): Promise<File[]> {
 // ===== Admin Audit Logs =====
 
 export async function createAdminAuditLog(log: Omit<AdminAuditLog, "id">): Promise<string> {
+    const db = getAdminDatabase();
     const logId = `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const logRef = ref(db, `admin_audit_logs/${logId}`);
 
-    await set(logRef, log);
+    await db.ref(`admin_audit_logs/${logId}`).set(log);
 
     return logId;
 }
 
 export async function getAdminAuditLogs(limit: number = 100): Promise<AdminAuditLog[]> {
-    const logsRef = ref(db, "admin_audit_logs");
-    const snapshot = await get(logsRef);
+    const db = getAdminDatabase();
+    const snapshot = await db.ref("admin_audit_logs").get();
 
     if (!snapshot.exists()) return [];
 
@@ -279,16 +272,16 @@ export async function searchUsers(searchTerm: string): Promise<User[]> {
 }
 
 export async function updateUserRole(userId: string, newRole: string): Promise<void> {
-    const userRef = ref(db, `users/${userId}`);
-    await update(userRef, {
+    const db = getAdminDatabase();
+    await db.ref(`users/${userId}`).update({
         role: newRole,
         updated_at: Date.now(),
     });
 }
 
 export async function deactivateUser(userId: string): Promise<void> {
-    const userRef = ref(db, `users/${userId}`);
-    await update(userRef, {
+    const db = getAdminDatabase();
+    await db.ref(`users/${userId}`).update({
         is_active: false,
         updated_at: Date.now(),
     });
@@ -297,8 +290,8 @@ export async function deactivateUser(userId: string): Promise<void> {
 // ===== Tenant Quotas =====
 
 export async function getTenantQuota(tenantId: string): Promise<TenantQuota | null> {
-    const quotaRef = ref(db, `tenant_quotas/${tenantId}`);
-    const snapshot = await get(quotaRef);
+    const db = getAdminDatabase();
+    const snapshot = await db.ref(`tenant_quotas/${tenantId}`).get();
 
     if (!snapshot.exists()) return null;
 
@@ -306,8 +299,8 @@ export async function getTenantQuota(tenantId: string): Promise<TenantQuota | nu
 }
 
 export async function updateTenantQuota(tenantId: string, quota: Partial<TenantQuota>): Promise<void> {
-    const quotaRef = ref(db, `tenant_quotas/${tenantId}`);
-    await update(quotaRef, quota);
+    const db = getAdminDatabase();
+    await db.ref(`tenant_quotas/${tenantId}`).update(quota);
 
     await createAdminAuditLog({
         admin_id: "system",

@@ -61,12 +61,10 @@ export async function requirePlatformAdmin(request: NextRequest) {
  */
 async function getUserRole(userId: string): Promise<string | null> {
     try {
-        const { getFirebaseDatabase } = await import("@/lib/firebase-config");
-        const { ref, get } = await import("firebase/database");
+        const { getAdminDatabase } = await import("@/lib/firebase-admin");
 
-        const db = getFirebaseDatabase();
-        const userRef = ref(db, `users/${userId}`);
-        const snapshot = await get(userRef);
+        const db = getAdminDatabase();
+        const snapshot = await db.ref(`users/${userId}`).get();
 
         if (!snapshot.exists()) {
             return null;
@@ -78,6 +76,7 @@ async function getUserRole(userId: string): Promise<string | null> {
         return null;
     }
 }
+
 
 /**
  * Check if user is platform admin (client-side)

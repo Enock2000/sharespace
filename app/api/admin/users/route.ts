@@ -13,12 +13,10 @@ export async function GET(request: NextRequest) {
             users = await searchUsers(search);
         } else {
             // Import database functions
-            const { getFirebaseDatabase } = await import("@/lib/firebase-config");
-            const { ref, get } = await import("firebase/database");
+            const { getAdminDatabase } = await import("@/lib/firebase-admin");
 
-            const db = getFirebaseDatabase();
-            const usersRef = ref(db, "users");
-            const snapshot = await get(usersRef);
+            const db = getAdminDatabase();
+            const snapshot = await db.ref("users").get();
 
             users = [];
             if (snapshot.exists()) {

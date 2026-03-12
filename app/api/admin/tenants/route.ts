@@ -31,12 +31,10 @@ export async function POST(request: NextRequest) {
         }
 
         // Create new tenant
-        const { getFirebaseDatabase } = await import("@/lib/firebase-config");
-        const { ref, set } = await import("firebase/database");
+        const { getAdminDatabase } = await import("@/lib/firebase-admin");
 
-        const db = getFirebaseDatabase();
+        const db = getAdminDatabase();
         const tenantId = `tenant_${Date.now()}`;
-        const tenantRef = ref(db, `tenants/${tenantId}`);
 
         const newTenant = {
             name,
@@ -48,7 +46,8 @@ export async function POST(request: NextRequest) {
             plan,
         };
 
-        await set(tenantRef, newTenant);
+        await db.ref(`tenants/${tenantId}`).set(newTenant);
+
 
         // Log the action
         await logAdminAction(
