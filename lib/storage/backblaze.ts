@@ -80,29 +80,29 @@ class BackblazeService {
         return response.data;
     }
 
-    async getDownloadUrl(fileName: string) {
+    async getDownloadUrl(b2FileId: string) {
         try {
             await this.authorize();
             const response = await this.b2.getDownloadAuthorization({
                 bucketId: CONFIG.bucketId,
-                fileNamePrefix: fileName,
+                fileNamePrefix: "",
                 validDurationInSeconds: 3600,
             });
 
             const { authorizationToken } = response.data;
-            return `${this.downloadUrl}/file/${CONFIG.bucketName}/${fileName}?Authorization=${authorizationToken}`;
+            return `${this.downloadUrl}/b2api/v2/b2_download_file_by_id?fileId=${encodeURIComponent(b2FileId)}&Authorization=${encodeURIComponent(authorizationToken)}`;
         } catch (error: any) {
             console.warn("[BackblazeService] getDownloadUrl failed, retrying with fresh auth...", error.message);
             this.resetAuth();
             await this.authorize();
             const response = await this.b2.getDownloadAuthorization({
                 bucketId: CONFIG.bucketId,
-                fileNamePrefix: fileName,
+                fileNamePrefix: "",
                 validDurationInSeconds: 3600,
             });
 
             const { authorizationToken } = response.data;
-            return `${this.downloadUrl}/file/${CONFIG.bucketName}/${fileName}?Authorization=${authorizationToken}`;
+            return `${this.downloadUrl}/b2api/v2/b2_download_file_by_id?fileId=${encodeURIComponent(b2FileId)}&Authorization=${encodeURIComponent(authorizationToken)}`;
         }
     }
 
