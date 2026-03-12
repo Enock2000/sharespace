@@ -90,8 +90,7 @@ class BackblazeService {
             });
 
             const { authorizationToken } = response.data;
-            const encodedFileName = encodeURIComponent(fileName);
-            return `${this.downloadUrl}/file/${CONFIG.bucketName}/${encodedFileName}?Authorization=${authorizationToken}`;
+            return `${this.downloadUrl}/file/${CONFIG.bucketName}/${fileName}?Authorization=${authorizationToken}`;
         } catch (error: any) {
             console.warn("[BackblazeService] getDownloadUrl failed, retrying with fresh auth...", error.message);
             this.resetAuth();
@@ -103,8 +102,7 @@ class BackblazeService {
             });
 
             const { authorizationToken } = response.data;
-            const encodedFileName = encodeURIComponent(fileName);
-            return `${this.downloadUrl}/file/${CONFIG.bucketName}/${encodedFileName}?Authorization=${authorizationToken}`;
+            return `${this.downloadUrl}/file/${CONFIG.bucketName}/${fileName}?Authorization=${authorizationToken}`;
         }
     }
 
